@@ -105,10 +105,10 @@ Use these direct links for deployment references:
 
 Deployed testnet contract links:
 
-- Content NFT: [https://stellar.expert/explorer/testnet/contract/CC7SN7PTB6QGLMJ4KLMZMJB7IM4VESDFYQKSZ4XBGQS562GT7XJLCE45](https://stellar.expert/explorer/testnet/contract/CC7SN7PTB6QGLMJ4KLMZMJB7IM4VESDFYQKSZ4XBGQS562GT7XJLCE45)
-- Subscription: [https://stellar.expert/explorer/testnet/contract/CA3RHIGE5HCJ5PJVITWB3JB6K6AA37UOAANBD34XZ2UD2G4UZWRIIORX](https://stellar.expert/explorer/testnet/contract/CA3RHIGE5HCJ5PJVITWB3JB6K6AA37UOAANBD34XZ2UD2G4UZWRIIORX)
-- Payment: [https://stellar.expert/explorer/testnet/contract/CCLTUXJLTZXIXPCMUZKSA5FWMOHKJ2T3FZLLMJAXBD5A6XQ27QSID4G7](https://stellar.expert/explorer/testnet/contract/CCLTUXJLTZXIXPCMUZKSA5FWMOHKJ2T3FZLLMJAXBD5A6XQ27QSID4G7)
-- Revenue: [https://stellar.expert/explorer/testnet/contract/CDCWH7TPIQMZUROU47AMXK7XZJUIB4FZUQWRNDN4YXCCNC6G2QAAMH5R](https://stellar.expert/explorer/testnet/contract/CDCWH7TPIQMZUROU47AMXK7XZJUIB4FZUQWRNDN4YXCCNC6G2QAAMH5R)
+- Content NFT: [https://stellar.expert/explorer/testnet/contract/CCZOU3GEW4OCJQR5W5JGTZYMOEBFHC2UAJFCE7JNKD7BYJGXYXXWEHDK](https://stellar.expert/explorer/testnet/contract/CCZOU3GEW4OCJQR5W5JGTZYMOEBFHC2UAJFCE7JNKD7BYJGXYXXWEHDK)
+- Subscription: [https://stellar.expert/explorer/testnet/contract/CAOLNGMO6NMBZWFZBDBTBBOQSJ4XPMP34E7YPPZZBB5SVCRTL4NR7YOO](https://stellar.expert/explorer/testnet/contract/CAOLNGMO6NMBZWFZBDBTBBOQSJ4XPMP34E7YPPZZBB5SVCRTL4NR7YOO)
+- Payment: [https://stellar.expert/explorer/testnet/contract/CA7DX6OT3A6Q34L647OMLJC7XX77IZ4PZEV6VOGZDV7E2DFMI62C22D7](https://stellar.expert/explorer/testnet/contract/CA7DX6OT3A6Q34L647OMLJC7XX77IZ4PZEV6VOGZDV7E2DFMI62C22D7)
+- Revenue: [https://stellar.expert/explorer/testnet/contract/CA7LK2OJP5KWP534UKPIN5RWJ4XCZGONNE27YUFO7FLEUAPQMUYQ6OE7](https://stellar.expert/explorer/testnet/contract/CA7LK2OJP5KWP534UKPIN5RWJ4XCZGONNE27YUFO7FLEUAPQMUYQ6OE7)
 
 ## Transaction Check Links
 
@@ -120,10 +120,10 @@ Use these links to verify successful transactions from wallet popups, logs, or s
 
 ### Deployment Transactions (Verified)
 
-- Content NFT deploy tx: [https://stellar.expert/explorer/testnet/tx/a30675c589692c47487f9053415e217eeee6206fb9535f1892d519da237812b6](https://stellar.expert/explorer/testnet/tx/a30675c589692c47487f9053415e217eeee6206fb9535f1892d519da237812b6)
-- Subscription deploy tx: [https://stellar.expert/explorer/testnet/tx/75bb66ae1b351d524dea448ff149e3c3697d24e187e41fbd7320f6f25bd21fdb](https://stellar.expert/explorer/testnet/tx/75bb66ae1b351d524dea448ff149e3c3697d24e187e41fbd7320f6f25bd21fdb)
-- Payment deploy tx: [https://stellar.expert/explorer/testnet/tx/0f6d2cbc44f46a598d5bb95adee6c8f02a08b69cf479b244a4e636c771ae4da5](https://stellar.expert/explorer/testnet/tx/0f6d2cbc44f46a598d5bb95adee6c8f02a08b69cf479b244a4e636c771ae4da5)
-- Revenue deploy tx: [https://stellar.expert/explorer/testnet/tx/89672ec141edca2ea8f456ddf14aa115f476c6109938d5e757963185edea7d27](https://stellar.expert/explorer/testnet/tx/89672ec141edca2ea8f456ddf14aa115f476c6109938d5e757963185edea7d27)
+- Content NFT deploy tx: [https://stellar.expert/explorer/testnet/tx/e9726da044dd1e51ff39098c4e91f369c38b71851b7785c372c9c47326367ce5](https://stellar.expert/explorer/testnet/tx/e9726da044dd1e51ff39098c4e91f369c38b71851b7785c372c9c47326367ce5)
+- Subscription deploy tx: [https://stellar.expert/explorer/testnet/tx/deca6a14081580b3eb1e54e1d953bcdbb9c8a9a20236f70b0eba6f7e41c76eee](https://stellar.expert/explorer/testnet/tx/deca6a14081580b3eb1e54e1d953bcdbb9c8a9a20236f70b0eba6f7e41c76eee)
+- Payment deploy tx: [https://stellar.expert/explorer/testnet/tx/bbb0934e6dff246391a20f4302642698c57b67e2c3180bfd2e57abb2226d0dcc](https://stellar.expert/explorer/testnet/tx/bbb0934e6dff246391a20f4302642698c57b67e2c3180bfd2e57abb2226d0dcc)
+- Revenue deploy tx: [https://stellar.expert/explorer/testnet/tx/4722e4cbb67dfaf099e2f8be8b6a744329372b66acd1ec37032a5d411b466b3a](https://stellar.expert/explorer/testnet/tx/4722e4cbb67dfaf099e2f8be8b6a744329372b66acd1ec37032a5d411b466b3a)
 
 For mainnet, replace `testnet` with `public`.
 

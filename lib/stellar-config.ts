@@ -16,8 +16,10 @@ export const STELLAR_CONFIG = {
 
   // Contract addresses (deployed on testnet)
   CONTRACTS: {
-    TIP_CONTRACT: process.env.NEXT_PUBLIC_TIP_CONTRACT_ID || "",
-    SUBSCRIPTION_CONTRACT: process.env.NEXT_PUBLIC_SUBSCRIPTION_CONTRACT_ID || "",
+    CONTENT_NFT_CONTRACT: process.env.NEXT_PUBLIC_CONTENT_NFT_CONTRACT || "",
+    SUBSCRIPTION_CONTRACT: process.env.NEXT_PUBLIC_SUBSCRIPTION_CONTRACT || "",
+    PAYMENT_CONTRACT: process.env.NEXT_PUBLIC_PAYMENT_CONTRACT || "",
+    REVENUE_CONTRACT: process.env.NEXT_PUBLIC_REVENUE_CONTRACT || "",
   },
 
   // Platform settings

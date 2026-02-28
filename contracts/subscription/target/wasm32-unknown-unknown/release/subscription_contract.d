@@ -1,1 +1,1 @@
-/workspaces/StellarClips/contracts/subscription/target/wasm32-unknown-unknown/release/subscription_contract.wasm: /workspaces/StellarClips/contracts/subscription/src/lib.rs
+C:\Users\Shriyash\ Soni\Downloads\StellarClips-main\contracts\subscription\target\wasm32-unknown-unknown\release\subscription_contract.wasm: C:\Users\Shriyash\ Soni\Downloads\StellarClips-main\contracts\subscription\src\lib.rs
