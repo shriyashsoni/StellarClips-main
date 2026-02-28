@@ -103,12 +103,12 @@ Use these direct links for deployment references:
 
 ## Contract Address Links (Explorer)
 
-After deployment, paste your IDs below to keep clickable links for your team:
+Deployed testnet contract links:
 
-- Content NFT: [https://stellar.expert/explorer/testnet/contract/<CONTENT_NFT_CONTRACT_ID>](https://stellar.expert/explorer/testnet/contract/%3CCONTENT_NFT_CONTRACT_ID%3E)
-- Subscription: [https://stellar.expert/explorer/testnet/contract/<SUBSCRIPTION_CONTRACT_ID>](https://stellar.expert/explorer/testnet/contract/%3CSUBSCRIPTION_CONTRACT_ID%3E)
-- Payment: [https://stellar.expert/explorer/testnet/contract/<PAYMENT_CONTRACT_ID>](https://stellar.expert/explorer/testnet/contract/%3CPAYMENT_CONTRACT_ID%3E)
-- Revenue: [https://stellar.expert/explorer/testnet/contract/<REVENUE_CONTRACT_ID>](https://stellar.expert/explorer/testnet/contract/%3CREVENUE_CONTRACT_ID%3E)
+- Content NFT: [https://stellar.expert/explorer/testnet/contract/CC7SN7PTB6QGLMJ4KLMZMJB7IM4VESDFYQKSZ4XBGQS562GT7XJLCE45](https://stellar.expert/explorer/testnet/contract/CC7SN7PTB6QGLMJ4KLMZMJB7IM4VESDFYQKSZ4XBGQS562GT7XJLCE45)
+- Subscription: [https://stellar.expert/explorer/testnet/contract/CA3RHIGE5HCJ5PJVITWB3JB6K6AA37UOAANBD34XZ2UD2G4UZWRIIORX](https://stellar.expert/explorer/testnet/contract/CA3RHIGE5HCJ5PJVITWB3JB6K6AA37UOAANBD34XZ2UD2G4UZWRIIORX)
+- Payment: [https://stellar.expert/explorer/testnet/contract/CCLTUXJLTZXIXPCMUZKSA5FWMOHKJ2T3FZLLMJAXBD5A6XQ27QSID4G7](https://stellar.expert/explorer/testnet/contract/CCLTUXJLTZXIXPCMUZKSA5FWMOHKJ2T3FZLLMJAXBD5A6XQ27QSID4G7)
+- Revenue: [https://stellar.expert/explorer/testnet/contract/CDCWH7TPIQMZUROU47AMXK7XZJUIB4FZUQWRNDN4YXCCNC6G2QAAMH5R](https://stellar.expert/explorer/testnet/contract/CDCWH7TPIQMZUROU47AMXK7XZJUIB4FZUQWRNDN4YXCCNC6G2QAAMH5R)
 
 ## Transaction Check Links
 
@@ -117,6 +117,13 @@ Use these links to verify successful transactions from wallet popups, logs, or s
 - Transaction by hash (testnet): [https://stellar.expert/explorer/testnet/tx/<TX_HASH>](https://stellar.expert/explorer/testnet/tx/%3CTX_HASH%3E)
 - Account operation history (testnet): [https://stellar.expert/explorer/testnet/account/<PUBLIC_KEY>](https://stellar.expert/explorer/testnet/account/%3CPUBLIC_KEY%3E)
 - Contract page by ID (testnet): [https://stellar.expert/explorer/testnet/contract/<CONTRACT_ID>](https://stellar.expert/explorer/testnet/contract/%3CCONTRACT_ID%3E)
+
+### Deployment Transactions (Verified)
+
+- Content NFT deploy tx: [https://stellar.expert/explorer/testnet/tx/a30675c589692c47487f9053415e217eeee6206fb9535f1892d519da237812b6](https://stellar.expert/explorer/testnet/tx/a30675c589692c47487f9053415e217eeee6206fb9535f1892d519da237812b6)
+- Subscription deploy tx: [https://stellar.expert/explorer/testnet/tx/75bb66ae1b351d524dea448ff149e3c3697d24e187e41fbd7320f6f25bd21fdb](https://stellar.expert/explorer/testnet/tx/75bb66ae1b351d524dea448ff149e3c3697d24e187e41fbd7320f6f25bd21fdb)
+- Payment deploy tx: [https://stellar.expert/explorer/testnet/tx/0f6d2cbc44f46a598d5bb95adee6c8f02a08b69cf479b244a4e636c771ae4da5](https://stellar.expert/explorer/testnet/tx/0f6d2cbc44f46a598d5bb95adee6c8f02a08b69cf479b244a4e636c771ae4da5)
+- Revenue deploy tx: [https://stellar.expert/explorer/testnet/tx/89672ec141edca2ea8f456ddf14aa115f476c6109938d5e757963185edea7d27](https://stellar.expert/explorer/testnet/tx/89672ec141edca2ea8f456ddf14aa115f476c6109938d5e757963185edea7d27)
 
 For mainnet, replace `testnet` with `public`.
 
