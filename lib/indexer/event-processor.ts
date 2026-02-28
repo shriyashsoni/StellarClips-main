@@ -2,62 +2,45 @@ import type { BlockchainEvent } from "@/lib/types"
 
 export class EventProcessor {
   async processEvent(event: BlockchainEvent) {
-    console.log("[v0] Processing event:", event.event_type)
+    console.log("[v0] Processing event:", event.eventType)
 
-    switch (event.event_type) {
-      case "content_minted":
-        await this.handleContentMinted(event)
-        break
-      case "payment":
+    switch (event.eventType) {
+      case "purchase":
         await this.handlePayment(event)
         break
-      case "subscription_created":
+      case "subscription":
         await this.handleSubscriptionCreated(event)
         break
-      case "subscription_renewed":
-        await this.handleSubscriptionRenewed(event)
-        break
-      case "tip_sent":
+      case "tip":
         await this.handleTipSent(event)
         break
-      case "withdrawal":
+      case "refund":
         await this.handleWithdrawal(event)
         break
       default:
-        console.log("[v0] Unknown event type:", event.event_type)
+        console.log("[v0] Unknown event type:", event.eventType)
     }
   }
 
-  private async handleContentMinted(event: BlockchainEvent) {
-    console.log("[v0] Content minted:", event.event_data)
-    // TODO: Update content status in database
-  }
-
   private async handlePayment(event: BlockchainEvent) {
-    console.log("[v0] Payment processed:", event.event_data)
+    console.log("[v0] Payment processed:", event.eventData)
     // TODO: Create purchase record in database
     // TODO: Grant access to content
   }
 
   private async handleSubscriptionCreated(event: BlockchainEvent) {
-    console.log("[v0] Subscription created:", event.event_data)
-    // TODO: Create subscription record
-    // TODO: Calculate expiry date
-  }
-
-  private async handleSubscriptionRenewed(event: BlockchainEvent) {
-    console.log("[v0] Subscription renewed:", event.event_data)
-    // TODO: Update subscription expiry
+    console.log("[v0] Subscription created:", event.eventData)
+    // TODO: Create/update subscription record
   }
 
   private async handleTipSent(event: BlockchainEvent) {
-    console.log("[v0] Tip sent:", event.event_data)
+    console.log("[v0] Tip sent:", event.eventData)
     // TODO: Record tip in database
     // TODO: Update creator earnings
   }
 
   private async handleWithdrawal(event: BlockchainEvent) {
-    console.log("[v0] Withdrawal processed:", event.event_data)
+    console.log("[v0] Withdrawal processed:", event.eventData)
     // TODO: Update creator balance
     // TODO: Record withdrawal transaction
   }

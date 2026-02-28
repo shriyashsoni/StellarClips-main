@@ -23,9 +23,10 @@ export interface Subscription {
 }
 
 export class SubscriptionService {
-  async createTier(name: string, price: string, durationDays: number): Promise<number> {
+  async createTier(creatorAddress: string, name: string, price: string, durationDays: number): Promise<number> {
     try {
       const params = [
+        nativeToScVal(creatorAddress, { type: "address" }),
         nativeToScVal(name, { type: "string" }),
         nativeToScVal(BigInt(price), { type: "i128" }),
         nativeToScVal(durationDays, { type: "u32" }),
@@ -40,9 +41,10 @@ export class SubscriptionService {
     }
   }
 
-  async subscribe(creatorAddress: string, tierId: number, autoRenew = false): Promise<void> {
+  async subscribe(subscriberAddress: string, creatorAddress: string, tierId: number, autoRenew = false): Promise<void> {
     try {
       const params = [
+        nativeToScVal(subscriberAddress, { type: "address" }),
         nativeToScVal(creatorAddress, { type: "address" }),
         nativeToScVal(tierId, { type: "u64" }),
         nativeToScVal(autoRenew, { type: "bool" }),
@@ -89,9 +91,12 @@ export class SubscriptionService {
     }
   }
 
-  async cancelSubscription(creatorAddress: string): Promise<void> {
+  async cancelSubscription(subscriberAddress: string, creatorAddress: string): Promise<void> {
     try {
-      const params = [nativeToScVal(creatorAddress, { type: "address" })]
+      const params = [
+        nativeToScVal(subscriberAddress, { type: "address" }),
+        nativeToScVal(creatorAddress, { type: "address" }),
+      ]
 
       await sorobanClient.invokeContract(SUBSCRIPTION_CONTRACT, "cancel_subscription", params)
     } catch (error) {
@@ -100,15 +105,23 @@ export class SubscriptionService {
     }
   }
 
-  async renewSubscription(creatorAddress: string, tierId: number): Promise<void> {
+  async renewSubscription(subscriberAddress: string, creatorAddress: string, tierId: number): Promise<void> {
     try {
-      const params = [nativeToScVal(creatorAddress, { type: "address" }), nativeToScVal(tierId, { type: "u64" })]
+      const params = [
+        nativeToScVal(subscriberAddress, { type: "address" }),
+        nativeToScVal(creatorAddress, { type: "address" }),
+        nativeToScVal(tierId, { type: "u64" }),
+      ]
 
       await sorobanClient.invokeContract(SUBSCRIPTION_CONTRACT, "renew_subscription", params)
     } catch (error) {
       console.error("Failed to renew subscription:", error)
       throw error
     }
+  }
+
+  xlmToStroops(amountXlm: string): string {
+    return Math.round(Number.parseFloat(amountXlm) * 10_000_000).toString()
   }
 
   async getTier(tierId: number): Promise<SubscriptionTier | null> {

@@ -15,9 +15,10 @@ export interface ContentMetadata {
 }
 
 export class ContentService {
-  async mintContent(metadataUri: string, price: string, contentType: string): Promise<number> {
+  async mintContent(creatorAddress: string, metadataUri: string, price: string, contentType: string): Promise<number> {
     try {
       const params = [
+        nativeToScVal(creatorAddress, { type: "address" }),
         nativeToScVal(metadataUri, { type: "string" }),
         nativeToScVal(BigInt(price), { type: "i128" }),
         nativeToScVal(contentType, { type: "string" }),

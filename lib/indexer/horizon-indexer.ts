@@ -1,12 +1,12 @@
-import { Server, type ServerApi } from "@stellar/stellar-sdk/lib/horizon"
+import { Horizon } from "@stellar/stellar-sdk"
 import { STELLAR_CONFIG } from "@/lib/stellar-config"
 
 export class HorizonIndexer {
-  private server: Server
+  private server: Horizon.Server
   private isRunning = false
 
   constructor() {
-    this.server = new Server(STELLAR_CONFIG.horizonUrl)
+    this.server = new Horizon.Server(STELLAR_CONFIG.HORIZON_URL)
   }
 
   async start() {
@@ -37,10 +37,14 @@ export class HorizonIndexer {
       .payments()
       .cursor("now")
       .stream({
-        onmessage: async (payment) => {
-          await this.handlePayment(payment)
+        onmessage: async (operation) => {
+          if (operation.type !== "payment") {
+            return
+          }
+
+          await this.handlePayment(operation as Horizon.ServerApi.PaymentOperationRecord)
         },
-        onerror: (error) => {
+        onerror: (error: unknown) => {
           console.error("[v0] Payment stream error:", error)
         },
       })
@@ -58,7 +62,7 @@ export class HorizonIndexer {
     // and process them accordingly
   }
 
-  private async handlePayment(payment: ServerApi.PaymentOperationRecord) {
+  private async handlePayment(payment: Horizon.ServerApi.PaymentOperationRecord) {
     try {
       console.log("[v0] Processing payment:", payment.id)
 
@@ -93,8 +97,7 @@ export class HorizonIndexer {
 
   async getTransactionDetails(txHash: string) {
     try {
-      const transaction = await this.server.transactions().transaction(txHash).call()
-      return transaction
+      return await this.server.transactions().transaction(txHash).call()
     } catch (error) {
       console.error("[v0] Error fetching transaction:", error)
       return null

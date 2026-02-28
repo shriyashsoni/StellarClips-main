@@ -40,7 +40,8 @@ export function TipDialog({ open, onOpenChange, creatorId, creatorName }: TipDia
     setError(null)
 
     try {
-      await paymentService.sendTip(publicKey, creatorId, amount)
+      const amountInStroops = paymentService.xlmToStroops(amount)
+      await paymentService.sendTip(publicKey, creatorId, amountInStroops)
 
       setSuccess(true)
       setTimeout(() => {

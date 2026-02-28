@@ -1,37 +1,77 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { ArrowUpRight, ArrowDownRight } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useWallet } from "@/hooks/use-wallet"
+import { horizonIndexer } from "@/lib/indexer/horizon-indexer"
+
+interface HistoryItem {
+  id: string
+  type: string
+  description: string
+  amount: string
+  date: string
+  status: string
+}
 
 export function HistoryTab() {
-  // TODO: Fetch actual transaction history
-  const transactions = [
-    {
-      id: "1",
-      type: "purchase",
-      description: "Purchased: Advanced React Patterns",
-      amount: "-5.00",
-      date: "2 days ago",
-      status: "completed",
-    },
-    {
-      id: "2",
-      type: "tip",
-      description: "Tip sent to Tech Educator",
-      amount: "-10.00",
-      date: "3 days ago",
-      status: "completed",
-    },
-    {
-      id: "3",
-      type: "subscription",
-      description: "Subscription: Design Master (Premium)",
-      amount: "-25.00",
-      date: "1 week ago",
-      status: "completed",
-    },
-  ]
+  const { publicKey } = useWallet()
+  const [transactions, setTransactions] = useState<HistoryItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const loadHistory = async () => {
+      setLoading(true)
+      setError(null)
+
+      if (!publicKey) {
+        setTransactions([])
+        setLoading(false)
+        return
+      }
+
+      try {
+        const payments = await horizonIndexer.getAccountPayments(publicKey, 30)
+        const mapped = payments
+          .filter((payment: { type?: string }) => payment.type === "payment")
+          .map((payment: { id: string; amount?: string; from?: string; to?: string; created_at?: string }) => ({
+            id: payment.id,
+            type: "payment",
+            description: `Payment ${payment.from?.slice(0, 4)}... -> ${payment.to?.slice(-4)}`,
+            amount: `-${payment.amount || "0.00"}`,
+            date: payment.created_at ? new Date(payment.created_at).toLocaleString() : "Unknown",
+            status: "confirmed",
+          }))
+
+        setTransactions(mapped)
+      } catch {
+        setError("Failed to load on-chain transaction history")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void loadHistory()
+  }, [publicKey])
+
+  if (loading) {
+    return <Card className="p-12 text-center text-muted-foreground">Loading on-chain history...</Card>
+  }
+
+  if (error) {
+    return <Card className="p-12 text-center text-destructive">{error}</Card>
+  }
+
+  if (transactions.length === 0) {
+    return (
+      <Card className="p-12 text-center">
+        <p className="text-muted-foreground">No on-chain transaction history found.</p>
+      </Card>
+    )
+  }
 
   return (
     <div className="space-y-3">

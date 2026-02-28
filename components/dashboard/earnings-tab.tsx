@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +15,24 @@ export function EarningsTab() {
   const { toast } = useToast()
   const [withdrawAmount, setWithdrawAmount] = useState("")
   const [isWithdrawing, setIsWithdrawing] = useState(false)
+  const [availableBalance, setAvailableBalance] = useState("0")
+  const [totalEarned, setTotalEarned] = useState("0")
+  const [totalWithdrawn, setTotalWithdrawn] = useState("0")
+
+  useEffect(() => {
+    const loadBalance = async () => {
+      if (!publicKey) return
+
+      const balance = await revenueService.getBalance(publicKey)
+      if (!balance) return
+
+      setAvailableBalance(revenueService.formatBalance(balance.availableBalance))
+      setTotalEarned(revenueService.formatBalance(balance.totalEarned))
+      setTotalWithdrawn(revenueService.formatBalance(balance.totalWithdrawn))
+    }
+
+    loadBalance()
+  }, [publicKey])
 
   const handleWithdraw = async () => {
     if (!isConnected || !publicKey) {
@@ -38,8 +56,8 @@ export function EarningsTab() {
     setIsWithdrawing(true)
 
     try {
-      const amountInStroops = (Number.parseFloat(withdrawAmount) * 10000000).toString()
-      await revenueService.withdraw(amountInStroops)
+      const amountInStroops = revenueService.xlmToStroops(withdrawAmount)
+      await revenueService.withdraw(publicKey, amountInStroops)
 
       toast({
         title: "Withdrawal successful",
@@ -47,6 +65,12 @@ export function EarningsTab() {
       })
 
       setWithdrawAmount("")
+      const balance = await revenueService.getBalance(publicKey)
+      if (balance) {
+        setAvailableBalance(revenueService.formatBalance(balance.availableBalance))
+        setTotalEarned(revenueService.formatBalance(balance.totalEarned))
+        setTotalWithdrawn(revenueService.formatBalance(balance.totalWithdrawn))
+      }
     } catch (error) {
       console.error("Withdrawal failed:", error)
       toast({
@@ -74,7 +98,7 @@ export function EarningsTab() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Available Balance</p>
-              <p className="text-2xl font-bold">0 XLM</p>
+              <p className="text-2xl font-bold">{availableBalance} XLM</p>
             </div>
           </div>
         </Card>
@@ -86,7 +110,7 @@ export function EarningsTab() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Earned</p>
-              <p className="text-2xl font-bold">0 XLM</p>
+              <p className="text-2xl font-bold">{totalEarned} XLM</p>
             </div>
           </div>
         </Card>
@@ -98,7 +122,7 @@ export function EarningsTab() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Withdrawn</p>
-              <p className="text-2xl font-bold">0 XLM</p>
+              <p className="text-2xl font-bold">{totalWithdrawn} XLM</p>
             </div>
           </div>
         </Card>

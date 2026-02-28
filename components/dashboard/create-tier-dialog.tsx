@@ -20,7 +20,7 @@ interface CreateTierDialogProps {
 }
 
 export function CreateTierDialog({ open, onOpenChange }: CreateTierDialogProps) {
-  const { isConnected } = useWallet()
+  const { isConnected, publicKey } = useWallet()
   const { toast } = useToast()
   const [isCreating, setIsCreating] = useState(false)
   const [formData, setFormData] = useState({
@@ -33,7 +33,7 @@ export function CreateTierDialog({ open, onOpenChange }: CreateTierDialogProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!isConnected) {
+    if (!isConnected || !publicKey) {
       toast({
         title: "Wallet not connected",
         description: "Please connect your wallet to create a tier",
@@ -45,10 +45,10 @@ export function CreateTierDialog({ open, onOpenChange }: CreateTierDialogProps) 
     setIsCreating(true)
 
     try {
-      const priceInStroops = (Number.parseFloat(formData.price) * 10000000).toString()
+      const priceInStroops = Math.round(Number.parseFloat(formData.price) * 10_000_000).toString()
       const durationDays = Number.parseInt(formData.duration)
 
-      const tierId = await subscriptionService.createTier(formData.name, priceInStroops, durationDays)
+      const tierId = await subscriptionService.createTier(publicKey, formData.name, priceInStroops, durationDays)
 
       toast({
         title: "Tier created successfully",

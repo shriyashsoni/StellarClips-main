@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card"
 import { PaymentDialog } from "./payment-dialog"
 import { useWallet } from "@/hooks/use-wallet"
 import type { Clip } from "@/lib/types"
+import { contentService } from "@/lib/services/content-service"
 
 interface ContentViewerProps {
   contentId: string
@@ -21,27 +22,45 @@ export function ContentViewer({ contentId }: ContentViewerProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // TODO: Fetch content and check purchase status
-    const mockContent: Clip = {
-      id: contentId,
-      creator_id: "creator1",
-      title: "Advanced React Patterns",
-      description:
-        "Learn advanced React patterns including render props, HOCs, and compound components. This comprehensive tutorial covers everything you need to know to write better React code.",
-      content_type: "video",
-      content_uri: "ipfs://QmExample1",
-      thumbnail_uri: "/react-code-tutorial.jpg",
-      price_xlm: "5.00",
-      duration_seconds: 1800,
-      is_published: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+    const loadContent = async () => {
+      setLoading(true)
+      const id = Number(contentId)
+
+      if (Number.isNaN(id)) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        const onChain = await contentService.getContent(id)
+
+        if (onChain) {
+          const mapped: Clip = {
+            id: String(onChain.contentId),
+            creatorId: onChain.creator,
+            title: `Content #${onChain.contentId}`,
+            description: "On-chain content",
+            contentType: (onChain.contentType as Clip["contentType"]) || "video",
+            ipfsHash: onChain.metadataUri,
+            thumbnailUrl: "/placeholder.svg?height=400&width=600&query=video content",
+            priceXlm: Number(onChain.price) / 10_000_000,
+            durationSeconds: 0,
+            viewCount: 0,
+            purchaseCount: 0,
+            isPublished: true,
+            createdAt: new Date(onChain.createdAt * 1000),
+            updatedAt: new Date(onChain.createdAt * 1000),
+          }
+          setContent(mapped)
+        } else {
+          setContent(null)
+        }
+      } finally {
+        setLoading(false)
+      }
     }
 
-    setTimeout(() => {
-      setContent(mockContent)
-      setLoading(false)
-    }, 500)
+    void loadContent()
   }, [contentId, publicKey])
 
   if (loading || !content) {
@@ -62,7 +81,7 @@ export function ContentViewer({ contentId }: ContentViewerProps) {
             ) : (
               <>
                 <Image
-                  src={content.thumbnail_uri || "/placeholder.svg"}
+                  src={content.thumbnailUrl || "/placeholder.svg"}
                   alt={content.title}
                   fill
                   className="object-cover opacity-50"
@@ -75,7 +94,7 @@ export function ContentViewer({ contentId }: ContentViewerProps) {
                       <p className="text-white/80">Purchase to unlock and watch</p>
                     </div>
                     <Button size="lg" onClick={() => setShowPayment(true)} className="bg-primary hover:bg-primary/90">
-                      Unlock for {content.price_xlm} XLM
+                      Unlock for {content.priceXlm} XLM
                     </Button>
                   </div>
                 </div>

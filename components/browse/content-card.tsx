@@ -17,7 +17,7 @@ export function ContentCard({ content }: ContentCardProps) {
       <Card className="overflow-hidden border-2 border-border hover:border-primary/40 hover:shadow-2xl transition-all duration-300 cursor-pointer group bg-card">
         <div className="relative aspect-video overflow-hidden bg-muted">
           <Image
-            src={content.thumbnail_uri || "/placeholder.svg?height=400&width=600&query=video content"}
+            src={content.thumbnailUrl || "/placeholder.svg?height=400&width=600&query=video content"}
             alt={content.title}
             fill
             className="object-cover group-hover:scale-110 transition-transform duration-500"
@@ -31,12 +31,12 @@ export function ContentCard({ content }: ContentCardProps) {
           <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{content.description}</p>
           <div className="flex items-center gap-4 mt-3 text-sm">
             <div className="flex items-center gap-1.5 font-semibold text-primary">
-              <span>{formatXLM(content.price_xlm)} XLM</span>
+              <span>{formatXLM(content.priceXlm)} XLM</span>
             </div>
-            {content.duration_seconds && (
+            {content.durationSeconds && (
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Clock className="h-3.5 w-3.5" />
-                <span>{formatDuration(content.duration_seconds)}</span>
+                <span>{formatDuration(content.durationSeconds)}</span>
               </div>
             )}
           </div>

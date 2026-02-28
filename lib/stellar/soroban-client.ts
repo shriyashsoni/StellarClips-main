@@ -1,6 +1,6 @@
 "use client"
 
-import { Contract, SorobanRpc, TransactionBuilder, Networks, BASE_FEE } from "@stellar/stellar-sdk"
+import { Contract, rpc as SorobanRpc, TransactionBuilder, Networks, BASE_FEE } from "@stellar/stellar-sdk"
 import { walletService } from "./wallet"
 
 const RPC_URL = process.env.NEXT_PUBLIC_STELLAR_RPC_URL || "https://soroban-testnet.stellar.org"
@@ -99,10 +99,21 @@ export class SorobanClient {
 
   async getAccountBalance(publicKey: string): Promise<string> {
     try {
-      const server = this.getServer()
-      const account = await server.getAccount(publicKey)
-      const balance = account.balances.find((b: any) => b.asset_type === "native")
-      return balance ? balance.balance : "0"
+      const horizonUrl =
+        process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
+          ? "https://horizon.stellar.org"
+          : "https://horizon-testnet.stellar.org"
+
+      const response = await fetch(`${horizonUrl}/accounts/${publicKey}`)
+
+      if (!response.ok) {
+        return "0"
+      }
+
+      const account = await response.json()
+      const balance = account.balances?.find((b: { asset_type: string; balance: string }) => b.asset_type === "native")
+
+      return balance?.balance ?? "0"
     } catch (error) {
       console.error("Failed to get balance:", error)
       return "0"

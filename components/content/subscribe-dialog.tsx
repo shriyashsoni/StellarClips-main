@@ -6,9 +6,18 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useWallet } from "@/hooks/use-wallet"
-import { subscriptionService } from "@/lib/services/subscription-service"
+import { subscriptionService, type SubscriptionTier } from "@/lib/services/subscription-service"
 import { formatXLM } from "@/lib/stellar-utils"
-import type { SubscriptionTier } from "@/lib/types"
+
+type UxTier = {
+  id: string
+  creatorId: string
+  name: string
+  description: string
+  priceXlm: number
+  durationDays: number
+  benefits: string[]
+}
 
 interface SubscribeDialogProps {
   open: boolean
@@ -18,40 +27,49 @@ interface SubscribeDialogProps {
 }
 
 export function SubscribeDialog({ open, onOpenChange, creatorId, creatorName }: SubscribeDialogProps) {
+  const MAX_TIER_PROBE = 30
   const { publicKey, isConnected } = useWallet()
-  const [tiers, setTiers] = useState<SubscriptionTier[]>([])
+  const [tiers, setTiers] = useState<UxTier[]>([])
   const [selectedTier, setSelectedTier] = useState<string | null>(null)
+  const [loadingTiers, setLoadingTiers] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // TODO: Fetch actual tiers
-    const mockTiers: SubscriptionTier[] = [
-      {
-        id: "1",
-        creator_id: creatorId,
-        name: "Basic",
-        description: "Access to all content",
-        price_xlm: "10.00",
-        duration_days: 30,
-        benefits: ["All content access", "Early releases"],
-        is_active: true,
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: "2",
-        creator_id: creatorId,
-        name: "Premium",
-        description: "Everything in Basic plus exclusive perks",
-        price_xlm: "25.00",
-        duration_days: 30,
-        benefits: ["All content access", "Early releases", "Exclusive content", "Direct messaging"],
-        is_active: true,
-        created_at: new Date().toISOString(),
-      },
-    ]
-    setTiers(mockTiers)
+    const loadTiers = async () => {
+      try {
+        setLoadingTiers(true)
+        setError(null)
+
+        const probeIds = Array.from({ length: MAX_TIER_PROBE }, (_, index) => index + 1)
+        const results = await Promise.allSettled(probeIds.map((id) => subscriptionService.getTier(id)))
+        const fetched = results
+          .filter((result): result is PromiseFulfilledResult<SubscriptionTier | null> => result.status === "fulfilled")
+          .map((result) => result.value)
+
+        const creatorTiers = fetched
+          .filter((tier): tier is SubscriptionTier => tier !== null)
+          .filter((tier) => tier.creator === creatorId)
+          .map<UxTier>((tier) => ({
+            id: String(tier.tierId),
+            creatorId,
+            name: tier.name,
+            description: `Tier for ${tier.durationDays} days`,
+            priceXlm: Number(tier.price) / 10_000_000,
+            durationDays: tier.durationDays,
+            benefits: ["On-chain subscription access"],
+          }))
+
+        setTiers(creatorTiers)
+      } catch {
+        setError("Failed to load subscription tiers")
+      } finally {
+        setLoadingTiers(false)
+      }
+    }
+
+    void loadTiers()
   }, [creatorId])
 
   const handleSubscribe = async () => {
@@ -67,7 +85,7 @@ export function SubscribeDialog({ open, onOpenChange, creatorId, creatorName }: 
       const tier = tiers.find((t) => t.id === selectedTier)
       if (!tier) throw new Error("Tier not found")
 
-      await subscriptionService.subscribe(publicKey, creatorId, selectedTier, tier.price_xlm)
+      await subscriptionService.subscribe(publicKey, creatorId, Number(tier.id))
 
       setSuccess(true)
       setTimeout(() => {
@@ -100,6 +118,17 @@ export function SubscribeDialog({ open, onOpenChange, creatorId, creatorName }: 
           </div>
         ) : (
           <div className="space-y-6">
+            {loadingTiers && (
+              <div className="text-sm text-muted-foreground flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading tiers...
+              </div>
+            )}
+
+            {!loadingTiers && tiers.length === 0 && !error && (
+              <div className="text-sm text-muted-foreground">No on-chain tiers available for this creator yet.</div>
+            )}
+
             <div className="grid gap-4">
               {tiers.map((tier) => (
                 <Card
@@ -130,7 +159,7 @@ export function SubscribeDialog({ open, onOpenChange, creatorId, creatorName }: 
                       </ul>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold">{formatXLM(tier.price_xlm)}</div>
+                      <div className="text-2xl font-bold">{formatXLM(tier.priceXlm)}</div>
                       <div className="text-sm text-muted-foreground">XLM/month</div>
                     </div>
                   </div>
@@ -146,7 +175,7 @@ export function SubscribeDialog({ open, onOpenChange, creatorId, creatorName }: 
               </Button>
               <Button
                 onClick={handleSubscribe}
-                disabled={processing || !isConnected || !selectedTier}
+                disabled={processing || loadingTiers || !isConnected || !selectedTier}
                 className="flex-1"
               >
                 {processing ? (

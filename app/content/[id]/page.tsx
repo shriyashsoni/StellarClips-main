@@ -2,19 +2,25 @@ import { Suspense } from "react"
 import { ContentViewer } from "@/components/content/content-viewer"
 import { ContentSidebar } from "@/components/content/content-sidebar"
 
-export default function ContentPage({ params }: { params: { id: string } }) {
+interface ContentPageProps {
+  params: Promise<{ id: string }>
+}
+
+export default async function ContentPage({ params }: ContentPageProps) {
+  const { id } = await params
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <Suspense fallback={<ViewerSkeleton />}>
-              <ContentViewer contentId={params.id} />
+              <ContentViewer contentId={id} />
             </Suspense>
           </div>
           <aside>
             <Suspense fallback={<SidebarSkeleton />}>
-              <ContentSidebar contentId={params.id} />
+              <ContentSidebar contentId={id} />
             </Suspense>
           </aside>
         </div>

@@ -20,7 +20,7 @@ interface UploadContentDialogProps {
 }
 
 export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogProps) {
-  const { isConnected } = useWallet()
+  const { isConnected, publicKey } = useWallet()
   const { toast } = useToast()
   const [isUploading, setIsUploading] = useState(false)
   const [formData, setFormData] = useState({
@@ -34,7 +34,7 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!isConnected) {
+    if (!isConnected || !publicKey) {
       toast({
         title: "Wallet not connected",
         description: "Please connect your wallet to upload content",
@@ -59,10 +59,10 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
       const metadataUri = `ipfs://placeholder/${formData.file.name}`
 
       // Convert XLM to stroops (1 XLM = 10,000,000 stroops)
-      const priceInStroops = (Number.parseFloat(formData.price) * 10000000).toString()
+      const priceInStroops = Math.round(Number.parseFloat(formData.price) * 10_000_000).toString()
 
       // Mint content NFT
-      const contentId = await contentService.mintContent(metadataUri, priceInStroops, formData.contentType)
+      const contentId = await contentService.mintContent(publicKey, metadataUri, priceInStroops, formData.contentType)
 
       toast({
         title: "Content uploaded successfully",

@@ -22,8 +22,9 @@ export function PaymentDialog({ open, onOpenChange, content, onSuccess }: Paymen
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const platformFee = (Number.parseFloat(content.price_xlm) * 0.05).toFixed(2)
-  const total = content.price_xlm
+  const contentPrice = content.priceXlm
+  const platformFee = contentPrice * 0.05
+  const total = contentPrice
 
   const handlePurchase = async () => {
     if (!isConnected || !publicKey) {
@@ -35,7 +36,8 @@ export function PaymentDialog({ open, onOpenChange, content, onSuccess }: Paymen
     setError(null)
 
     try {
-      await paymentService.processPayment(publicKey, content.creator_id, content.id, content.price_xlm)
+      const amountInStroops = paymentService.xlmToStroops(contentPrice.toString())
+      await paymentService.payForContent(publicKey, content.creatorId, amountInStroops, Number(content.id))
 
       setSuccess(true)
       setTimeout(() => {
@@ -69,7 +71,7 @@ export function PaymentDialog({ open, onOpenChange, content, onSuccess }: Paymen
             <div className="space-y-4">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Content Price</span>
-                <span className="font-medium">{formatXLM(content.price_xlm)} XLM</span>
+                <span className="font-medium">{formatXLM(contentPrice)} XLM</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Platform Fee (5%)</span>

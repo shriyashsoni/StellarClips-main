@@ -13,7 +13,7 @@ export class SubscriptionManager {
   }
 
   private async handleExpiringSubscription(subscription: Subscription) {
-    const daysUntilExpiry = this.getDaysUntilExpiry(subscription.end_date)
+    const daysUntilExpiry = this.getDaysUntilExpiry(subscription.endDate)
 
     if (daysUntilExpiry <= 0) {
       console.log("[v0] Subscription expired:", subscription.id)
@@ -35,12 +35,11 @@ export class SubscriptionManager {
     console.log("[v0] Notifying user about expiring subscription:", subscription.id)
   }
 
-  private getDaysUntilExpiry(endDate: string): number {
+  private getDaysUntilExpiry(endDate: Date): number {
     const now = new Date()
-    const expiry = new Date(endDate)
+    const expiry = endDate
     const diffTime = expiry.getTime() - now.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   }
 
   async renewSubscription(subscriptionId: string, userId: string) {

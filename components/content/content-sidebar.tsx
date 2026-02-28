@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Heart, Share2, Flag } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { TipDialog } from "./tip-dialog"
 import { SubscribeDialog } from "./subscribe-dialog"
+import { contentService } from "@/lib/services/content-service"
 
 interface ContentSidebarProps {
   contentId: string
@@ -15,6 +16,23 @@ interface ContentSidebarProps {
 export function ContentSidebar({ contentId }: ContentSidebarProps) {
   const [showTip, setShowTip] = useState(false)
   const [showSubscribe, setShowSubscribe] = useState(false)
+  const [creatorId, setCreatorId] = useState("creator1")
+
+  useEffect(() => {
+    const loadCreator = async () => {
+      const id = Number(contentId)
+      if (Number.isNaN(id)) return
+
+      const onChain = await contentService.getContent(id)
+      if (onChain?.creator) {
+        setCreatorId(onChain.creator)
+      }
+    }
+
+    void loadCreator()
+  }, [contentId])
+
+  const creatorName = `${creatorId.slice(0, 6)}...${creatorId.slice(-4)}`
 
   return (
     <>
@@ -29,7 +47,7 @@ export function ContentSidebar({ contentId }: ContentSidebarProps) {
                 <AvatarFallback>CN</AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-semibold">Creator Name</p>
+                <p className="font-semibold">{creatorName}</p>
                 <p className="text-sm text-muted-foreground">1.2K subscribers</p>
               </div>
             </div>
@@ -79,14 +97,9 @@ export function ContentSidebar({ contentId }: ContentSidebarProps) {
         </div>
       </div>
 
-      <TipDialog open={showTip} onOpenChange={setShowTip} creatorId="creator1" creatorName="Creator Name" />
+      <TipDialog open={showTip} onOpenChange={setShowTip} creatorId={creatorId} creatorName={creatorName} />
 
-      <SubscribeDialog
-        open={showSubscribe}
-        onOpenChange={setShowSubscribe}
-        creatorId="creator1"
-        creatorName="Creator Name"
-      />
+      <SubscribeDialog open={showSubscribe} onOpenChange={setShowSubscribe} creatorId={creatorId} creatorName={creatorName} />
     </>
   )
 }

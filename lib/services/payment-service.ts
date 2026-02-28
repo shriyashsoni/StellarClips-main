@@ -17,9 +17,10 @@ export interface PaymentRecord {
 }
 
 export class PaymentService {
-  async payForContent(creatorAddress: string, amount: string, contentId: number): Promise<number> {
+  async payForContent(payerAddress: string, creatorAddress: string, amount: string, contentId: number): Promise<number> {
     try {
       const params = [
+        nativeToScVal(payerAddress, { type: "address" }),
         nativeToScVal(creatorAddress, { type: "address" }),
         nativeToScVal(BigInt(amount), { type: "i128" }),
         nativeToScVal(contentId, { type: "u64" }),
@@ -34,9 +35,10 @@ export class PaymentService {
     }
   }
 
-  async sendTip(creatorAddress: string, amount: string): Promise<number> {
+  async sendTip(tipperAddress: string, creatorAddress: string, amount: string): Promise<number> {
     try {
       const params = [
+        nativeToScVal(tipperAddress, { type: "address" }),
         nativeToScVal(creatorAddress, { type: "address" }),
         nativeToScVal(BigInt(amount), { type: "i128" }),
       ]
@@ -76,6 +78,10 @@ export class PaymentService {
     const fee = this.calculatePlatformFee(amount)
     const creatorAmount = amountBigInt - BigInt(fee)
     return creatorAmount.toString()
+  }
+
+  xlmToStroops(amountXlm: string): string {
+    return Math.round(Number.parseFloat(amountXlm) * 10_000_000).toString()
   }
 }
 

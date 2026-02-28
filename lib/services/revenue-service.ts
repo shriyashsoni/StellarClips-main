@@ -14,9 +14,9 @@ export interface CreatorBalance {
 }
 
 export class RevenueService {
-  async withdraw(amount: string): Promise<void> {
+  async withdraw(creatorAddress: string, amount: string): Promise<void> {
     try {
-      const params = [nativeToScVal(BigInt(amount), { type: "i128" })]
+      const params = [nativeToScVal(creatorAddress, { type: "address" }), nativeToScVal(BigInt(amount), { type: "i128" })]
 
       await sorobanClient.invokeContract(REVENUE_CONTRACT, "withdraw", params)
     } catch (error) {
@@ -61,6 +61,10 @@ export class RevenueService {
   parseBalance(xlm: string): string {
     const amount = BigInt(xlm) * BigInt(10000000) // Convert from XLM to stroops
     return amount.toString()
+  }
+
+  xlmToStroops(amountXlm: string): string {
+    return Math.round(Number.parseFloat(amountXlm) * 10_000_000).toString()
   }
 }
 

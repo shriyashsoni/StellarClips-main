@@ -141,23 +141,9 @@ NEXT_PUBLIC_CONTENT_NFT_CONTRACT=C...
 NEXT_PUBLIC_SUBSCRIPTION_CONTRACT=C...
 NEXT_PUBLIC_PAYMENT_CONTRACT=C...
 NEXT_PUBLIC_REVENUE_CONTRACT=C...
-
-# Database (Optional - for Supabase)
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
 \`\`\`
 
-4. Set up database:
-\`\`\`bash
-# Create database
-createdb stellarclips
-
-# Run migrations
-psql -d stellarclips -f scripts/01-create-tables.sql
-psql -d stellarclips -f scripts/02-create-functions.sql
-\`\`\`
-
-5. Build and deploy smart contracts:
+4. Build and deploy smart contracts:
 \`\`\`bash
 cd contracts
 chmod +x build.sh deploy.sh
@@ -165,12 +151,12 @@ chmod +x build.sh deploy.sh
 ./deploy.sh testnet
 \`\`\`
 
-6. Start the development server:
+5. Start the development server:
 \`\`\`bash
 npm run dev
 \`\`\`
 
-7. Start the indexer (optional, in separate terminal):
+6. Start the indexer (optional, in separate terminal):
 \`\`\`bash
 npm run indexer
 \`\`\`

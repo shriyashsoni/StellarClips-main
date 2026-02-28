@@ -1,29 +1,77 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Play } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { useWallet } from "@/hooks/use-wallet"
+import { horizonIndexer } from "@/lib/indexer/horizon-indexer"
+
+interface PurchaseItem {
+  id: string
+  title: string
+  thumbnail: string
+  purchaseDate: string
+  price: string
+}
 
 export function PurchasesTab() {
-  // TODO: Fetch actual purchases
-  const purchases = [
-    {
-      id: "1",
-      title: "Advanced React Patterns",
-      thumbnail: "/react-code-snippet.png",
-      purchaseDate: "2 days ago",
-      price: "5.00",
-    },
-    {
-      id: "2",
-      title: "Blockchain Fundamentals",
-      thumbnail: "/interconnected-blocks.png",
-      purchaseDate: "1 week ago",
-      price: "8.50",
-    },
-  ]
+  const { publicKey } = useWallet()
+  const [purchases, setPurchases] = useState<PurchaseItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const loadPurchases = async () => {
+      setLoading(true)
+      setError(null)
+
+      if (!publicKey) {
+        setPurchases([])
+        setLoading(false)
+        return
+      }
+
+      try {
+        const payments = await horizonIndexer.getAccountPayments(publicKey, 20)
+        const normalized = payments
+          .filter((payment: { type?: string }) => payment.type === "payment")
+          .map((payment: { id: string; amount?: string; created_at?: string }, index: number) => ({
+            id: String(index + 1),
+            title: `On-chain Purchase #${index + 1}`,
+            thumbnail: "/placeholder.svg?height=400&width=600&query=digital content",
+            purchaseDate: payment.created_at ? new Date(payment.created_at).toLocaleDateString() : "Unknown",
+            price: payment.amount || "0.00",
+          }))
+
+        setPurchases(normalized)
+      } catch {
+        setError("Failed to load on-chain purchases")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void loadPurchases()
+  }, [publicKey])
+
+  if (loading) {
+    return <Card className="p-12 text-center text-muted-foreground">Loading on-chain purchases...</Card>
+  }
+
+  if (error) {
+    return <Card className="p-12 text-center text-destructive">{error}</Card>
+  }
+
+  if (purchases.length === 0) {
+    return (
+      <Card className="p-12 text-center">
+        <p className="text-muted-foreground">No on-chain purchases found for this wallet.</p>
+      </Card>
+    )
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
