@@ -86,14 +86,37 @@ All smart contracts live in [contracts](contracts) and are written in Rust.
 
 ---
 
+## Smart Contract Deployment Links
+
+Use these direct links for deployment references:
+
+- Main deployment guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- Testnet quick deployment: [DEPLOY_TO_TESTNET.md](DEPLOY_TO_TESTNET.md)
+- Contract deployment scripts folder: [contracts](contracts)
+- Build script: [contracts/build.sh](contracts/build.sh)
+- Standard deploy script: [contracts/deploy.sh](contracts/deploy.sh)
+- Testnet deploy script: [contracts/deploy-testnet.sh](contracts/deploy-testnet.sh)
+- RPC deploy script: [contracts/deploy-via-rpc.sh](contracts/deploy-via-rpc.sh)
+- Node.js deploy script: [contracts/deploy-with-nodejs.js](contracts/deploy-with-nodejs.js)
+
+---
+
 ## Contract Address Links (Explorer)
 
 After deployment, paste your IDs below to keep clickable links for your team:
 
-- Content NFT: `https://stellar.expert/explorer/testnet/contract/<CONTENT_NFT_CONTRACT_ID>`
-- Subscription: `https://stellar.expert/explorer/testnet/contract/<SUBSCRIPTION_CONTRACT_ID>`
-- Payment: `https://stellar.expert/explorer/testnet/contract/<PAYMENT_CONTRACT_ID>`
-- Revenue: `https://stellar.expert/explorer/testnet/contract/<REVENUE_CONTRACT_ID>`
+- Content NFT: [https://stellar.expert/explorer/testnet/contract/<CONTENT_NFT_CONTRACT_ID>](https://stellar.expert/explorer/testnet/contract/%3CCONTENT_NFT_CONTRACT_ID%3E)
+- Subscription: [https://stellar.expert/explorer/testnet/contract/<SUBSCRIPTION_CONTRACT_ID>](https://stellar.expert/explorer/testnet/contract/%3CSUBSCRIPTION_CONTRACT_ID%3E)
+- Payment: [https://stellar.expert/explorer/testnet/contract/<PAYMENT_CONTRACT_ID>](https://stellar.expert/explorer/testnet/contract/%3CPAYMENT_CONTRACT_ID%3E)
+- Revenue: [https://stellar.expert/explorer/testnet/contract/<REVENUE_CONTRACT_ID>](https://stellar.expert/explorer/testnet/contract/%3CREVENUE_CONTRACT_ID%3E)
+
+## Transaction Check Links
+
+Use these links to verify successful transactions from wallet popups, logs, or script output:
+
+- Transaction by hash (testnet): [https://stellar.expert/explorer/testnet/tx/<TX_HASH>](https://stellar.expert/explorer/testnet/tx/%3CTX_HASH%3E)
+- Account operation history (testnet): [https://stellar.expert/explorer/testnet/account/<PUBLIC_KEY>](https://stellar.expert/explorer/testnet/account/%3CPUBLIC_KEY%3E)
+- Contract page by ID (testnet): [https://stellar.expert/explorer/testnet/contract/<CONTRACT_ID>](https://stellar.expert/explorer/testnet/contract/%3CCONTRACT_ID%3E)
 
 For mainnet, replace `testnet` with `public`.
 
