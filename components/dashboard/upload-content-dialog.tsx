@@ -9,12 +9,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Upload, Loader2 } from "lucide-react"
+import { Loader2, Link as LinkIcon } from "lucide-react"
 import { useWallet } from "@/hooks/use-wallet"
 import { contentService } from "@/lib/services/content-service"
 import { useToast } from "@/hooks/use-toast"
 import { getContractHealth } from "@/lib/contract-health"
-import { scanContentFile, type ScannedContentMetadata } from "@/lib/ai/content-scanner"
+import { describeContentDataDirectly, scanContentLink, type ScannedContentMetadata } from "@/lib/ai/content-scanner"
+import { Checkbox } from "@/components/ui/checkbox"
+import { encryptContentLink } from "@/lib/security/content-encryption"
 
 interface UploadContentDialogProps {
   open: boolean
@@ -27,38 +29,44 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
   const { toast } = useToast()
   const [isUploading, setIsUploading] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
+  const [isEncrypting, setIsEncrypting] = useState(false)
   const [scanResult, setScanResult] = useState<ScannedContentMetadata | null>(null)
+  const [encryptLink, setEncryptLink] = useState(false)
+  const [accessKey, setAccessKey] = useState("")
+  const [publishedSecret, setPublishedSecret] = useState<{ contentId: number; key: string } | null>(null)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     contentType: "video",
     price: "",
-    file: null as File | null,
+    contentLink: "",
+    thumbnailLink: "",
   })
 
-  const handleFileSelected = async (file: File | null) => {
-    setFormData({ ...formData, file })
+  const handleLinkScan = async (contentLink: string) => {
+    setFormData((prev) => ({ ...prev, contentLink }))
 
-    if (!file) {
+    if (!contentLink) {
       setScanResult(null)
       return
     }
 
     setIsScanning(true)
     try {
-      const scanned = await scanContentFile(file)
+      const scanned = await scanContentLink(contentLink)
       setScanResult(scanned)
       setFormData((prev) => ({
         ...prev,
-        file,
+        contentLink,
         title: scanned.title,
         description: scanned.description,
         contentType: scanned.contentType,
         price: scanned.suggestedPriceXlm,
+        thumbnailLink: scanned.contentType === "image" ? scanned.previewUrl : prev.thumbnailLink,
       }))
       toast({
         title: "AI scan completed",
-        description: "Content preview generated and form autofilled.",
+        description: "Content link analyzed and form autofilled.",
       })
     } catch (error) {
       console.error("AI scan failed:", error)
@@ -93,10 +101,19 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
       return
     }
 
-    if (!formData.file) {
+    if (!formData.contentLink) {
       toast({
-        title: "No file selected",
-        description: "Please select a file to upload",
+        title: "Missing content link",
+        description: "Please add a content URL before publishing",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (encryptLink && !accessKey.trim()) {
+      toast({
+        title: "Missing encryption key",
+        description: "Enter an access key to encrypt this content link",
         variant: "destructive",
       })
       return
@@ -105,8 +122,13 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
     setIsUploading(true)
 
     try {
-      // In a real implementation, upload file to IPFS or storage service
-      const metadataUri = `ipfs://placeholder/${formData.file.name}`
+      let metadataUri = formData.contentLink.trim()
+
+      if (encryptLink) {
+        setIsEncrypting(true)
+        metadataUri = await encryptContentLink(metadataUri, accessKey)
+        setIsEncrypting(false)
+      }
 
       // Convert XLM to stroops (1 XLM = 10,000,000 stroops)
       const priceInStroops = Math.round(Number.parseFloat(formData.price) * 10_000_000).toString()
@@ -119,17 +141,31 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
         description: `Content ID: ${contentId}`,
       })
 
+      if (encryptLink) {
+        const keySnapshot = accessKey
+        setPublishedSecret({ contentId, key: keySnapshot })
+        toast({
+          title: "Save your access key",
+          description: "Encrypted content published. Copy and store this key safely before closing.",
+        })
+      }
+
       // Reset form
       setFormData({
         title: "",
         description: "",
         contentType: "video",
         price: "",
-        file: null,
+        contentLink: "",
+        thumbnailLink: "",
       })
       setScanResult(null)
+      setEncryptLink(false)
+      setAccessKey("")
 
-      onOpenChange(false)
+      if (!encryptLink) {
+        onOpenChange(false)
+      }
     } catch (error) {
       console.error("Upload failed:", error)
       toast({
@@ -138,8 +174,33 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
         variant: "destructive",
       })
     } finally {
+      setIsEncrypting(false)
       setIsUploading(false)
     }
+  }
+
+  const applyDirectAiDescription = () => {
+    if (!formData.contentLink) {
+      toast({
+        title: "Add content link first",
+        description: "AI description needs a link source.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const description = describeContentDataDirectly({
+      title: formData.title || "On-chain Linked Content",
+      contentType: formData.contentType as "video" | "audio" | "image" | "article",
+      contentLink: formData.contentLink,
+      tags: scanResult?.tags,
+    })
+
+    setFormData((prev) => ({ ...prev, description }))
+    toast({
+      title: "AI description updated",
+      description: "Description was generated directly from your content data.",
+    })
   }
 
   return (
@@ -151,6 +212,35 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {publishedSecret && (
+            <div className="space-y-3 rounded-lg border border-primary/40 bg-primary/5 p-4">
+              <p className="text-sm font-semibold">Encrypted content published (ID: {publishedSecret.contentId})</p>
+              <p className="text-xs text-muted-foreground">Store this access key now. If lost, buyers cannot decrypt the resource.</p>
+              <div className="rounded-md bg-background border px-3 py-2 text-sm font-mono break-all">{publishedSecret.key}</div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(publishedSecret.key)
+                    toast({ title: "Access key copied" })
+                  }}
+                >
+                  Copy Access Key
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setPublishedSecret(null)
+                    onOpenChange(false)
+                  }}
+                >
+                  Done
+                </Button>
+              </div>
+            </div>
+          )}
+
           {scanResult && (
             <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
               <div className="flex items-center justify-between">
@@ -184,6 +274,36 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
           )}
 
           <div className="space-y-2">
+            <Label htmlFor="content-link">Content Link (URL)</Label>
+            <div className="flex gap-2">
+              <Input
+                id="content-link"
+                type="url"
+                placeholder="https://... or ipfs://..."
+                value={formData.contentLink}
+                onChange={(e) => setFormData((prev) => ({ ...prev, contentLink: e.target.value }))}
+                required
+              />
+              <Button type="button" variant="outline" onClick={() => void handleLinkScan(formData.contentLink)} disabled={isScanning || !formData.contentLink}>
+                {isScanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
+                Scan
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Publishing is link-based only. Local file upload is disabled.</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="thumbnail-link">Thumbnail Link (optional)</Label>
+            <Input
+              id="thumbnail-link"
+              type="url"
+              placeholder="https://..."
+              value={formData.thumbnailLink}
+              onChange={(e) => setFormData((prev) => ({ ...prev, thumbnailLink: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input
               id="title"
@@ -204,6 +324,48 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
               rows={4}
               required
             />
+            <div className="flex justify-end">
+              <Button type="button" variant="outline" size="sm" onClick={applyDirectAiDescription}>
+                AI Describe Data
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-lg border p-3">
+            <div className="flex items-center gap-2">
+              <Checkbox id="encrypt-link" checked={encryptLink} onCheckedChange={(checked) => setEncryptLink(checked === true)} />
+              <Label htmlFor="encrypt-link">Encrypt resource link before writing on-chain</Label>
+            </div>
+            {encryptLink && (
+              <div className="space-y-2">
+                <Label htmlFor="access-key">Access Key</Label>
+                <Input
+                  id="access-key"
+                  type="password"
+                  placeholder="Enter private key for authorized users"
+                  value={accessKey}
+                  onChange={(e) => setAccessKey(e.target.value)}
+                  required={encryptLink}
+                />
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!accessKey}
+                    onClick={() => {
+                      navigator.clipboard.writeText(accessKey)
+                      toast({ title: "Access key copied" })
+                    }}
+                  >
+                    Copy Key
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Share this key only with buyers/subscribers. Without it, encrypted links cannot be opened.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -240,29 +402,6 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="file">File</Label>
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
-              <Input
-                id="file"
-                type="file"
-                className="hidden"
-                onChange={(e) => {
-                  void handleFileSelected(e.target.files?.[0] || null)
-                }}
-                accept="video/*,audio/*,image/*"
-              />
-              <label htmlFor="file" className="cursor-pointer">
-                <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm font-medium">
-                  {formData.file ? formData.file.name : "Click to upload or drag and drop"}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">Video, audio, or image files</p>
-                {isScanning && <p className="text-xs text-primary mt-2">AI is scanning file and autofilling form...</p>}
-              </label>
-            </div>
-          </div>
-
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
               Cancel
@@ -272,10 +411,10 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
               disabled={isUploading || isScanning || !isConnected || !contractHealth.isReady}
               title={!contractHealth.isReady ? `Missing: ${contractHealth.missingKeys.join(", ")}` : undefined}
             >
-              {isUploading ? (
+              {isUploading || isEncrypting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading...
+                  {isEncrypting ? "Encrypting..." : "Uploading..."}
                 </>
               ) : isScanning ? (
                 <>

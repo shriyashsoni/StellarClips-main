@@ -1,13 +1,47 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { useWallet } from "@/hooks/use-wallet"
 import { AlertCircle, CheckCircle2, DollarSign, TrendingUp, Users, FileText } from "lucide-react"
 import { getContractHealth } from "@/lib/contract-health"
+import { contentService } from "@/lib/services/content-service"
+import { accessService } from "@/lib/services/access-service"
+import { revenueService } from "@/lib/services/revenue-service"
 
 export function DashboardHeader() {
   const { publicKey } = useWallet()
   const contractHealth = getContractHealth()
+  const [contentCount, setContentCount] = useState(0)
+  const [subscriptionCount, setSubscriptionCount] = useState(0)
+  const [purchaseCount, setPurchaseCount] = useState(0)
+  const [totalEarnings, setTotalEarnings] = useState("0")
+
+  useEffect(() => {
+    const loadStats = async () => {
+      if (!publicKey) {
+        setContentCount(0)
+        setSubscriptionCount(0)
+        setPurchaseCount(0)
+        setTotalEarnings("0")
+        return
+      }
+
+      const [contentIds, subscriptions, purchases, balance] = await Promise.all([
+        contentService.getCreatorContents(publicKey),
+        accessService.getUserActiveSubscriptions(publicKey),
+        accessService.getUserPurchases(publicKey),
+        revenueService.getBalance(publicKey),
+      ])
+
+      setContentCount(contentIds.length)
+      setSubscriptionCount(subscriptions.length)
+      setPurchaseCount(purchases.length)
+      setTotalEarnings(balance ? revenueService.formatBalance(balance.totalEarned) : "0")
+    }
+
+    void loadStats()
+  }, [publicKey])
 
   return (
     <>
@@ -42,7 +76,7 @@ export function DashboardHeader() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Earnings</p>
-                  <p className="text-xl font-bold">0 XLM</p>
+                  <p className="text-xl font-bold">{totalEarnings} XLM</p>
                 </div>
               </div>
             </Card>
@@ -53,8 +87,8 @@ export function DashboardHeader() {
                   <Users className="w-5 h-5 text-accent" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Subscribers</p>
-                  <p className="text-xl font-bold">0</p>
+                  <p className="text-sm text-muted-foreground">Subscriptions</p>
+                  <p className="text-xl font-bold">{subscriptionCount}</p>
                 </div>
               </div>
             </Card>
@@ -66,7 +100,7 @@ export function DashboardHeader() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Content Items</p>
-                  <p className="text-xl font-bold">0</p>
+                  <p className="text-xl font-bold">{contentCount}</p>
                 </div>
               </div>
             </Card>
@@ -77,8 +111,8 @@ export function DashboardHeader() {
                   <TrendingUp className="w-5 h-5 text-chart-2" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">This Month</p>
-                  <p className="text-xl font-bold">0 XLM</p>
+                  <p className="text-sm text-muted-foreground">Purchases</p>
+                  <p className="text-xl font-bold">{purchaseCount}</p>
                 </div>
               </div>
             </Card>

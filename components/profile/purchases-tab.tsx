@@ -7,7 +7,7 @@ import { Play } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useWallet } from "@/hooks/use-wallet"
-import { horizonIndexer } from "@/lib/indexer/horizon-indexer"
+import { accessService } from "@/lib/services/access-service"
 
 interface PurchaseItem {
   id: string
@@ -15,6 +15,7 @@ interface PurchaseItem {
   thumbnail: string
   purchaseDate: string
   price: string
+  contentId: string
 }
 
 export function PurchasesTab() {
@@ -35,15 +36,14 @@ export function PurchasesTab() {
       }
 
       try {
-        const payments = await horizonIndexer.getAccountPayments(publicKey, 20)
-        const normalized = payments
-          .filter((payment: { type?: string }) => payment.type === "payment")
-          .map((payment: { id: string; amount?: string; created_at?: string }, index: number) => ({
-            id: String(index + 1),
-            title: `On-chain Purchase #${index + 1}`,
+        const purchases = await accessService.getUserPurchases(publicKey)
+        const normalized = purchases.map((purchase, index) => ({
+            id: String(purchase.paymentId),
+            title: `Purchased Content #${purchase.contentId}`,
             thumbnail: "/placeholder.svg?height=400&width=600&query=digital content",
-            purchaseDate: payment.created_at ? new Date(payment.created_at).toLocaleDateString() : "Unknown",
-            price: payment.amount || "0.00",
+            purchaseDate: new Date(purchase.timestamp * 1000).toLocaleDateString(),
+            price: (Number(purchase.amount) / 10_000_000).toFixed(2),
+            contentId: String(purchase.contentId || index + 1),
           }))
 
         setPurchases(normalized)
@@ -81,7 +81,7 @@ export function PurchasesTab() {
             <Image src={purchase.thumbnail || "/placeholder.svg"} alt={purchase.title} fill className="object-cover" />
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <Button size="lg" className="rounded-full" asChild>
-                <Link href={`/content/${purchase.id}`}>
+                <Link href={`/content/${purchase.contentId}`}>
                   <Play className="mr-2 h-5 w-5" />
                   Watch Now
                 </Link>

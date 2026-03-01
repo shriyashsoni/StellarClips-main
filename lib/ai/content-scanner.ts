@@ -12,6 +12,13 @@ export interface ScannedContentMetadata {
   confidence: number
 }
 
+export interface ContentDescriptionInput {
+  title: string
+  contentType: SupportedContentType
+  contentLink: string
+  tags?: string[]
+}
+
 function toTitleCase(value: string): string {
   return value
     .split(" ")
@@ -143,4 +150,70 @@ export async function scanContentFile(file: File): Promise<ScannedContentMetadat
     tags,
     confidence: 0.93,
   }
+}
+
+export async function scanContentLink(link: string): Promise<ScannedContentMetadata> {
+  const parsed = new URL(link)
+  const path = parsed.pathname.toLowerCase()
+
+  let contentType: SupportedContentType = "article"
+
+  if (/(\.mp4|\.webm|\.mov|\.mkv)$/.test(path) || parsed.hostname.includes("youtube") || parsed.hostname.includes("vimeo")) {
+    contentType = "video"
+  } else if (/(\.mp3|\.wav|\.m4a|\.ogg)$/.test(path) || parsed.hostname.includes("soundcloud")) {
+    contentType = "audio"
+  } else if (/(\.png|\.jpg|\.jpeg|\.webp|\.gif)$/.test(path) || parsed.hostname.includes("imgur")) {
+    contentType = "image"
+  }
+
+  const title = toTitleCase(
+    (parsed.pathname.split("/").pop() || parsed.hostname)
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[_-]+/g, " "),
+  )
+
+  const description = describeContentDataDirectly({
+    title: title || "On-chain Linked Content",
+    contentType,
+    contentLink: link,
+    tags: ["on-chain", "link", contentType],
+  })
+
+  return {
+    title: title || "On-chain Linked Content",
+    description,
+    contentType,
+    suggestedPriceXlm: priceByType(contentType),
+    fileFormat: parsed.protocol.replace(":", ""),
+    fileSizeLabel: "Link source",
+    previewUrl: link,
+    tags: ["on-chain", "link", contentType],
+    confidence: 0.9,
+  }
+}
+
+export function describeContentDataDirectly(input: ContentDescriptionInput): string {
+  let host = "external source"
+
+  try {
+    host = new URL(input.contentLink).hostname
+  } catch {
+    host = "external source"
+  }
+
+  const tagText = input.tags && input.tags.length > 0 ? ` Tags: ${input.tags.join(", ")}.` : ""
+
+  if (input.contentType === "video") {
+    return `${input.title} is a premium video resource from ${host}. This on-chain listing is optimized for paid access, subscriptions, and creator monetization.${tagText}`
+  }
+
+  if (input.contentType === "audio") {
+    return `${input.title} is an audio release hosted on ${host}. It is prepared for tokenized listening access through on-chain payments and subscriber unlocks.${tagText}`
+  }
+
+  if (input.contentType === "image") {
+    return `${input.title} is a visual content asset sourced from ${host}. It is published for premium viewing access with on-chain purchase and subscriber permissions.${tagText}`
+  }
+
+  return `${input.title} is a link-based digital resource from ${host}. It is published on-chain for controlled premium access via purchases or active subscriptions.${tagText}`
 }

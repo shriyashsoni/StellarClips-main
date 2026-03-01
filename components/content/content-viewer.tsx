@@ -2,13 +2,17 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Lock, Play } from "lucide-react"
+import { ExternalLink, Lock, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { PaymentDialog } from "./payment-dialog"
 import { useWallet } from "@/hooks/use-wallet"
 import type { Clip } from "@/lib/types"
 import { contentService } from "@/lib/services/content-service"
+import { accessService } from "@/lib/services/access-service"
+import { decryptContentLink, isEncryptedContentUri } from "@/lib/security/content-encryption"
 
 interface ContentViewerProps {
   contentId: string
@@ -17,9 +21,13 @@ interface ContentViewerProps {
 export function ContentViewer({ contentId }: ContentViewerProps) {
   const { publicKey } = useWallet()
   const [content, setContent] = useState<Clip | null>(null)
-  const [hasPurchased, setHasPurchased] = useState(false)
+  const [hasAccess, setHasAccess] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [accessKey, setAccessKey] = useState("")
+  const [decryptedLink, setDecryptedLink] = useState<string | null>(null)
+  const [decryptError, setDecryptError] = useState<string | null>(null)
+  const [isDecrypting, setIsDecrypting] = useState(false)
 
   useEffect(() => {
     const loadContent = async () => {
@@ -52,6 +60,16 @@ export function ContentViewer({ contentId }: ContentViewerProps) {
             updatedAt: new Date(onChain.createdAt * 1000),
           }
           setContent(mapped)
+          setDecryptedLink(null)
+          setDecryptError(null)
+          setAccessKey("")
+
+          if (publicKey) {
+            const allowed = await accessService.canAccessContent(publicKey, onChain.creator, onChain.contentId)
+            setHasAccess(allowed)
+          } else {
+            setHasAccess(false)
+          }
         } else {
           setContent(null)
         }
@@ -67,16 +85,65 @@ export function ContentViewer({ contentId }: ContentViewerProps) {
     return <div>Loading...</div>
   }
 
+  const encrypted = !!content.ipfsHash && isEncryptedContentUri(content.ipfsHash)
+  const resolvedLink = encrypted ? decryptedLink : content.ipfsHash
+
+  const handleDecrypt = async () => {
+    if (!content.ipfsHash) return
+
+    setIsDecrypting(true)
+    setDecryptError(null)
+
+    try {
+      const plain = await decryptContentLink(content.ipfsHash, accessKey)
+      setDecryptedLink(plain)
+    } catch (error) {
+      setDecryptError(error instanceof Error ? error.message : "Failed to decrypt content")
+    } finally {
+      setIsDecrypting(false)
+    }
+  }
+
   return (
     <>
       <div className="space-y-6">
         <Card className="overflow-hidden">
           <div className="relative aspect-video bg-black">
-            {hasPurchased ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Button size="lg" className="rounded-full h-16 w-16">
-                  <Play className="h-8 w-8" />
-                </Button>
+            {hasAccess ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white p-6">
+                <p className="text-center font-medium">Unlocked resource</p>
+                {encrypted && !decryptedLink && (
+                  <div className="w-full max-w-md space-y-3">
+                    <div className="space-y-2 text-left">
+                      <Label htmlFor="content-access-key" className="text-white">Access Key Required</Label>
+                      <Input
+                        id="content-access-key"
+                        type="password"
+                        value={accessKey}
+                        onChange={(e) => setAccessKey(e.target.value)}
+                        placeholder="Enter content access key"
+                      />
+                    </div>
+                    {decryptError && <p className="text-xs text-red-300">{decryptError}</p>}
+                    <Button size="lg" onClick={() => void handleDecrypt()} disabled={isDecrypting || !accessKey}>
+                      {isDecrypting ? "Decrypting..." : "Decrypt Content Link"}
+                    </Button>
+                  </div>
+                )}
+
+                {resolvedLink && (
+                  <>
+                    <a href={resolvedLink} target="_blank" rel="noopener noreferrer">
+                      <Button size="lg">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Open Content Link
+                      </Button>
+                    </a>
+                    <a href={resolvedLink} target="_blank" rel="noopener noreferrer" className="text-xs underline break-all text-center">
+                      {resolvedLink}
+                    </a>
+                  </>
+                )}
               </div>
             ) : (
               <>
@@ -91,7 +158,7 @@ export function ContentViewer({ contentId }: ContentViewerProps) {
                     <Lock className="h-16 w-16 mx-auto text-white/80" />
                     <div className="space-y-2">
                       <p className="text-white text-lg font-medium">This content is locked</p>
-                      <p className="text-white/80">Purchase to unlock and watch</p>
+                      <p className="text-white/80">Purchase or subscribe to unlock this content link</p>
                     </div>
                     <Button size="lg" onClick={() => setShowPayment(true)} className="bg-primary hover:bg-primary/90">
                       Unlock for {content.priceXlm} XLM
@@ -114,7 +181,7 @@ export function ContentViewer({ contentId }: ContentViewerProps) {
         onOpenChange={setShowPayment}
         content={content}
         onSuccess={() => {
-          setHasPurchased(true)
+          setHasAccess(true)
           setShowPayment(false)
         }}
       />

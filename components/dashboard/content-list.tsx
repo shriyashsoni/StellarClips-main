@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useWallet } from "@/hooks/use-wallet"
 import { contentService, type ContentMetadata } from "@/lib/services/content-service"
 import { formatXLM } from "@/lib/stellar-utils"
+import { isEncryptedContentUri } from "@/lib/security/content-encryption"
 
 interface CreatorContentItem {
   id: number
@@ -15,6 +16,7 @@ interface CreatorContentItem {
   type: string
   priceXlm: number
   views: number
+  link: string
 }
 
 export function ContentList() {
@@ -49,6 +51,7 @@ export function ContentList() {
             type: item.contentType,
             priceXlm: Number(item.price) / 10_000_000,
             views: 0,
+            link: item.metadataUri,
           }))
 
         setContents(normalized)
@@ -88,6 +91,13 @@ export function ContentList() {
               <div>
                 <h3 className="font-semibold">{content.title}</h3>
                 <p className="text-sm text-muted-foreground">{content.type}</p>
+                {isEncryptedContentUri(content.link) ? (
+                  <p className="text-xs text-muted-foreground">Encrypted protected resource</p>
+                ) : (
+                  <a href={content.link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline break-all">
+                    {content.link}
+                  </a>
+                )}
               </div>
             </div>
 
