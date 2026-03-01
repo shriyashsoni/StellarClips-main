@@ -2,8 +2,15 @@
 
 import { sorobanClient } from "../stellar/soroban-client"
 import { nativeToScVal, scValToNative } from "@stellar/stellar-sdk"
+import { normalizePaymentRecord, toNumber } from "./contract-response"
 
 const PAYMENT_CONTRACT = process.env.NEXT_PUBLIC_PAYMENT_CONTRACT!
+
+function assertContractAddress(contractAddress: string, envName: string) {
+  if (!contractAddress) {
+    throw new Error(`${envName} is not configured`)
+  }
+}
 
 export interface PaymentRecord {
   paymentId: number
@@ -19,6 +26,8 @@ export interface PaymentRecord {
 export class PaymentService {
   async payForContent(payerAddress: string, creatorAddress: string, amount: string, contentId: number): Promise<number> {
     try {
+      assertContractAddress(PAYMENT_CONTRACT, "NEXT_PUBLIC_PAYMENT_CONTRACT")
+
       const params = [
         nativeToScVal(payerAddress, { type: "address" }),
         nativeToScVal(creatorAddress, { type: "address" }),
@@ -28,7 +37,7 @@ export class PaymentService {
 
       const result = await sorobanClient.invokeContract(PAYMENT_CONTRACT, "pay_for_content", params)
 
-      return scValToNative(result)
+      return toNumber(scValToNative(result))
     } catch (error) {
       console.error("Failed to pay for content:", error)
       throw error
@@ -37,6 +46,8 @@ export class PaymentService {
 
   async sendTip(tipperAddress: string, creatorAddress: string, amount: string): Promise<number> {
     try {
+      assertContractAddress(PAYMENT_CONTRACT, "NEXT_PUBLIC_PAYMENT_CONTRACT")
+
       const params = [
         nativeToScVal(tipperAddress, { type: "address" }),
         nativeToScVal(creatorAddress, { type: "address" }),
@@ -45,7 +56,7 @@ export class PaymentService {
 
       const result = await sorobanClient.invokeContract(PAYMENT_CONTRACT, "send_tip", params)
 
-      return scValToNative(result)
+      return toNumber(scValToNative(result))
     } catch (error) {
       console.error("Failed to send tip:", error)
       throw error
@@ -54,13 +65,15 @@ export class PaymentService {
 
   async getPayment(paymentId: number): Promise<PaymentRecord | null> {
     try {
+      assertContractAddress(PAYMENT_CONTRACT, "NEXT_PUBLIC_PAYMENT_CONTRACT")
+
       const params = [nativeToScVal(paymentId, { type: "u64" })]
 
       const result = await sorobanClient.readContract(PAYMENT_CONTRACT, "get_payment", params)
 
       if (!result) return null
 
-      return scValToNative(result)
+      return normalizePaymentRecord(scValToNative(result))
     } catch (error) {
       console.error("Failed to get payment:", error)
       return null

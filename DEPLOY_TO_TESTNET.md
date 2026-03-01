@@ -24,14 +24,17 @@ Use either an identity configured in Soroban CLI or a secret key.
 
 ```bash
 cd contracts
-./deploy-testnet.sh <source>
+./deploy-testnet.sh <source> <platform_address> <token_contract_address>
 ```
 
 ### Option B: pass source via environment variable
 
 ```bash
 cd contracts
-SOROBAN_SOURCE=<source> ./deploy-testnet.sh
+SOROBAN_SOURCE=<source> \
+SOROBAN_PLATFORM_ADDRESS=<platform_address> \
+SOROBAN_TOKEN_ADDRESS=<token_contract_address> \
+./deploy-testnet.sh
 ```
 
 The script prints contract IDs in env format:
@@ -41,6 +44,7 @@ NEXT_PUBLIC_CONTENT_NFT_CONTRACT=...
 NEXT_PUBLIC_SUBSCRIPTION_CONTRACT=...
 NEXT_PUBLIC_PAYMENT_CONTRACT=...
 NEXT_PUBLIC_REVENUE_CONTRACT=...
+NEXT_PUBLIC_SIMULATION_ACCOUNT=<funded_testnet_account>
 ```
 
 ## 3) Configure Frontend

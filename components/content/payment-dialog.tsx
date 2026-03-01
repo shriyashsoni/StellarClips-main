@@ -6,8 +6,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button"
 import { useWallet } from "@/hooks/use-wallet"
 import { paymentService } from "@/lib/services/payment-service"
+import { revenueService } from "@/lib/services/revenue-service"
 import { formatXLM } from "@/lib/stellar-utils"
 import type { Clip } from "@/lib/types"
+import { getContractHealth } from "@/lib/contract-health"
 
 interface PaymentDialogProps {
   open: boolean
@@ -18,6 +20,7 @@ interface PaymentDialogProps {
 
 export function PaymentDialog({ open, onOpenChange, content, onSuccess }: PaymentDialogProps) {
   const { publicKey, isConnected } = useWallet()
+  const contractHealth = getContractHealth()
   const [processing, setProcessing] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -32,12 +35,24 @@ export function PaymentDialog({ open, onOpenChange, content, onSuccess }: Paymen
       return
     }
 
+    if (!contractHealth.isReady) {
+      setError(`Smart contract config missing: ${contractHealth.missingKeys.join(", ")}`)
+      return
+    }
+
     setProcessing(true)
     setError(null)
 
     try {
       const amountInStroops = paymentService.xlmToStroops(contentPrice.toString())
       await paymentService.payForContent(publicKey, content.creatorId, amountInStroops, Number(content.id))
+
+      try {
+        const creatorAmount = paymentService.calculateCreatorAmount(amountInStroops)
+        await revenueService.recordEarning(content.creatorId, creatorAmount)
+      } catch (revenueError) {
+        console.warn("[v0] Purchase succeeded but revenue tracking failed:", revenueError)
+      }
 
       setSuccess(true)
       setTimeout(() => {
@@ -89,7 +104,12 @@ export function PaymentDialog({ open, onOpenChange, content, onSuccess }: Paymen
               <Button variant="outline" onClick={() => onOpenChange(false)} disabled={processing} className="flex-1">
                 Cancel
               </Button>
-              <Button onClick={handlePurchase} disabled={processing || !isConnected} className="flex-1">
+              <Button
+                onClick={handlePurchase}
+                disabled={processing || !isConnected || !contractHealth.isReady}
+                title={!contractHealth.isReady ? `Missing: ${contractHealth.missingKeys.join(", ")}` : undefined}
+                className="flex-1"
+              >
                 {processing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -100,6 +120,9 @@ export function PaymentDialog({ open, onOpenChange, content, onSuccess }: Paymen
                 )}
               </Button>
             </div>
+            {!contractHealth.isReady && (
+              <p className="text-xs text-destructive">Smart contract config missing: {contractHealth.missingKeys.join(", ")}</p>
+            )}
           </div>
         )}
       </DialogContent>

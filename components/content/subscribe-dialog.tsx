@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card"
 import { useWallet } from "@/hooks/use-wallet"
 import { subscriptionService, type SubscriptionTier } from "@/lib/services/subscription-service"
 import { formatXLM } from "@/lib/stellar-utils"
+import { getContractHealth } from "@/lib/contract-health"
 
 type UxTier = {
   id: string
@@ -29,6 +30,7 @@ interface SubscribeDialogProps {
 export function SubscribeDialog({ open, onOpenChange, creatorId, creatorName }: SubscribeDialogProps) {
   const MAX_TIER_PROBE = 30
   const { publicKey, isConnected } = useWallet()
+  const contractHealth = getContractHealth()
   const [tiers, setTiers] = useState<UxTier[]>([])
   const [selectedTier, setSelectedTier] = useState<string | null>(null)
   const [loadingTiers, setLoadingTiers] = useState(false)
@@ -75,6 +77,11 @@ export function SubscribeDialog({ open, onOpenChange, creatorId, creatorName }: 
   const handleSubscribe = async () => {
     if (!isConnected || !publicKey || !selectedTier) {
       setError("Please select a tier and connect your wallet")
+      return
+    }
+
+    if (!contractHealth.isReady) {
+      setError(`Smart contract config missing: ${contractHealth.missingKeys.join(", ")}`)
       return
     }
 
@@ -175,7 +182,8 @@ export function SubscribeDialog({ open, onOpenChange, creatorId, creatorName }: 
               </Button>
               <Button
                 onClick={handleSubscribe}
-                disabled={processing || loadingTiers || !isConnected || !selectedTier}
+                disabled={processing || loadingTiers || !isConnected || !selectedTier || !contractHealth.isReady}
+                title={!contractHealth.isReady ? `Missing: ${contractHealth.missingKeys.join(", ")}` : undefined}
                 className="flex-1"
               >
                 {processing ? (
@@ -188,6 +196,9 @@ export function SubscribeDialog({ open, onOpenChange, creatorId, creatorName }: 
                 )}
               </Button>
             </div>
+            {!contractHealth.isReady && (
+              <p className="text-xs text-destructive">Smart contract config missing: {contractHealth.missingKeys.join(", ")}</p>
+            )}
           </div>
         )}
       </DialogContent>

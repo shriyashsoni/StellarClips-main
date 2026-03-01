@@ -16,8 +16,57 @@ export interface WalletInfo {
   isInstalled: boolean
 }
 
+type DynamicWalletProvider = Record<string, any>
+
+function getFreighterProvider(): DynamicWalletProvider | null {
+  if (typeof window === "undefined") return null
+
+  const win = window as any
+  return win.freighter || win.freighterApi || win.freighterAPI || win.stellar?.freighter || null
+}
+
+function getXBullProvider(): DynamicWalletProvider | null {
+  if (typeof window === "undefined") return null
+
+  const win = window as any
+  return win.xBullSDK || win.xbull || win.xbullSDK || null
+}
+
+function getRabetProvider(): DynamicWalletProvider | null {
+  if (typeof window === "undefined") return null
+
+  const win = window as any
+  return win.rabet || win.rabetApi || null
+}
+
+function extractAddress(value: any): string | null {
+  if (!value) return null
+  if (typeof value === "string") return value
+
+  return value.publicKey || value.address || value.account || value.pubkey || null
+}
+
+function extractSignedXdr(value: any): string | null {
+  if (!value) return null
+  if (typeof value === "string") return value
+
+  return (
+    value.signedXDR ||
+    value.signedXdr ||
+    value.signedTransaction ||
+    value.signedTxXdr ||
+    value.xdr ||
+    value.signed_envelope_xdr ||
+    null
+  )
+}
+
 export function detectInstalledWallets(): WalletInfo[] {
   if (typeof window === "undefined") return []
+
+  const freighter = getFreighterProvider()
+  const xbull = getXBullProvider()
+  const rabet = getRabetProvider()
 
   const wallets: WalletInfo[] = [
     {
@@ -25,7 +74,7 @@ export function detectInstalledWallets(): WalletInfo[] {
       name: "Freighter",
       description: "Most popular Stellar wallet",
       installUrl: "https://www.freighter.app/",
-      isInstalled: !!(window as any).freighter,
+      isInstalled: !!freighter,
     },
     {
       type: "albedo",
@@ -39,14 +88,14 @@ export function detectInstalledWallets(): WalletInfo[] {
       name: "xBull",
       description: "Mobile & browser wallet",
       installUrl: "https://xbull.app/",
-      isInstalled: !!(window as any).xBullSDK,
+      isInstalled: !!xbull,
     },
     {
       type: "rabet",
       name: "Rabet",
       description: "Browser extension wallet",
       installUrl: "https://rabet.io/",
-      isInstalled: !!(window as any).rabet,
+      isInstalled: !!rabet,
     },
   ]
 
@@ -108,31 +157,43 @@ class StellarWalletService {
   }
 
   private async connectFreighter(): Promise<string> {
-    const freighter = (window as any).freighter
+    const freighter = getFreighterProvider()
 
     if (!freighter) {
       throw new Error("Freighter wallet not installed. Please install it from https://www.freighter.app/")
     }
 
     try {
-      const isAllowed = await freighter.isAllowed()
+      if (typeof freighter.requestAccess === "function") {
+        const access = await freighter.requestAccess()
+        const address = extractAddress(access)
+        if (address) return address
+      }
 
-      if (!isAllowed) {
-        const allowed = await freighter.setAllowed()
-        if (!allowed) {
-          throw new Error("User denied wallet access")
+      if (typeof freighter.isAllowed === "function" && typeof freighter.setAllowed === "function") {
+        const isAllowed = await freighter.isAllowed()
+
+        if (!isAllowed) {
+          const allowed = await freighter.setAllowed()
+          if (!allowed) {
+            throw new Error("User denied wallet access")
+          }
         }
       }
 
-      const publicKey = await freighter.getPublicKey()
-
-      if (!publicKey) {
-        throw new Error("Failed to get public key from Freighter")
+      if (typeof freighter.getPublicKey === "function") {
+        const publicKey = await freighter.getPublicKey()
+        if (publicKey) return publicKey
       }
 
-      return publicKey
+      if (typeof freighter.getAddress === "function") {
+        const address = extractAddress(await freighter.getAddress())
+        if (address) return address
+      }
+
+      throw new Error("Failed to get public key from Freighter")
     } catch (error: any) {
-      if (error.message?.includes("User declined")) {
+      if (error.message?.includes("User declined") || error.message?.includes("rejected")) {
         throw new Error("User declined wallet connection")
       }
       throw error
@@ -163,35 +224,37 @@ class StellarWalletService {
   }
 
   private async connectXBull(): Promise<string> {
-    const xBullSDK = (window as any).xBullSDK
+    const xBullSDK = getXBullProvider()
 
     if (!xBullSDK) {
       throw new Error("xBull wallet not found. Please install the xBull browser extension.")
     }
 
     const result = await xBullSDK.connect()
+    const publicKey = extractAddress(result)
 
-    if (!result.publicKey) {
+    if (!publicKey) {
       throw new Error("Failed to get public key from xBull")
     }
 
-    return result.publicKey
+    return publicKey
   }
 
   private async connectRabet(): Promise<string> {
-    const rabet = (window as any).rabet
+    const rabet = getRabetProvider()
 
     if (!rabet) {
       throw new Error("Rabet wallet not found. Please install the Rabet browser extension.")
     }
 
     const result = await rabet.connect()
+    const publicKey = extractAddress(result)
 
-    if (!result.publicKey) {
+    if (!publicKey) {
       throw new Error("Failed to get public key from Rabet")
     }
 
-    return result.publicKey
+    return publicKey
   }
 
   async disconnectWallet(): Promise<void> {
@@ -220,23 +283,63 @@ class StellarWalletService {
     try {
       switch (this.state.walletType) {
         case "freighter":
-          return await (window as any).freighter.signTransaction(xdr, {
-            network: process.env.NEXT_PUBLIC_STELLAR_NETWORK || "testnet",
-          })
+          const freighter = getFreighterProvider()
+          if (!freighter || typeof freighter.signTransaction !== "function") {
+            throw new Error("Freighter signTransaction is not available")
+          }
+
+          try {
+            const signed = await freighter.signTransaction(xdr, {
+              network: process.env.NEXT_PUBLIC_STELLAR_NETWORK || "testnet",
+            })
+            const signedXdr = extractSignedXdr(signed)
+            if (signedXdr) return signedXdr
+          } catch {
+            const signed = await freighter.signTransaction(xdr)
+            const signedXdr = extractSignedXdr(signed)
+            if (signedXdr) return signedXdr
+          }
+
+          throw new Error("Freighter failed to sign transaction")
         case "albedo":
-          const albedoResult = await (window as any).albedo.tx({
+          const albedoModule = await import("@albedo-link/intent")
+          const albedo = albedoModule.default
+
+          const albedoResult = await albedo.tx({
             xdr,
             network: process.env.NEXT_PUBLIC_STELLAR_NETWORK || "testnet",
           })
-          return albedoResult.signed_envelope_xdr
+          {
+            const signedXdr = extractSignedXdr(albedoResult)
+            if (!signedXdr) throw new Error("Albedo failed to sign transaction")
+            return signedXdr
+          }
         case "xbull":
-          const xBullResult = await (window as any).xBullSDK.signTransaction(xdr)
-          return xBullResult.signedTransaction
+          const xBull = getXBullProvider()
+          if (!xBull || typeof xBull.signTransaction !== "function") {
+            throw new Error("xBull signTransaction is not available")
+          }
+
+          const xBullResult = await xBull.signTransaction(xdr)
+          {
+            const signedXdr = extractSignedXdr(xBullResult)
+            if (!signedXdr) throw new Error("xBull failed to sign transaction")
+            return signedXdr
+          }
         case "rabet":
-          const rabetResult = await (window as any).rabet.sign(xdr, {
+          const rabet = getRabetProvider()
+          if (!rabet || typeof rabet.sign !== "function") {
+            throw new Error("Rabet sign is not available")
+          }
+
+          const rabetResult = await rabet.sign(xdr, {
             network: process.env.NEXT_PUBLIC_STELLAR_NETWORK || "testnet",
           })
-          return rabetResult.xdr
+          {
+            const signedXdr = extractSignedXdr(rabetResult)
+            if (!signedXdr) throw new Error("Rabet failed to sign transaction")
+            return signedXdr
+          }
         default:
           throw new Error(`Unsupported wallet type: ${this.state.walletType}`)
       }

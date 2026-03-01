@@ -69,7 +69,7 @@ cargo install --locked soroban-cli
 ./build.sh
 
 # Deploy all contracts
-./deploy.sh testnet <source_account_or_secret>
+./deploy.sh testnet <source_account_or_secret> <platform_address> <token_contract_address>
 \`\`\`
 
 ## Testing

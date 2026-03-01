@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWallet } from "@/hooks/use-wallet"
 import { paymentService } from "@/lib/services/payment-service"
+import { revenueService } from "@/lib/services/revenue-service"
+import { getContractHealth } from "@/lib/contract-health"
 
 interface TipDialogProps {
   open: boolean
@@ -20,6 +22,7 @@ const PRESET_AMOUNTS = ["1", "5", "10", "25"]
 
 export function TipDialog({ open, onOpenChange, creatorId, creatorName }: TipDialogProps) {
   const { publicKey, isConnected } = useWallet()
+  const contractHealth = getContractHealth()
   const [amount, setAmount] = useState("")
   const [processing, setProcessing] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -36,12 +39,24 @@ export function TipDialog({ open, onOpenChange, creatorId, creatorName }: TipDia
       return
     }
 
+    if (!contractHealth.isReady) {
+      setError(`Smart contract config missing: ${contractHealth.missingKeys.join(", ")}`)
+      return
+    }
+
     setProcessing(true)
     setError(null)
 
     try {
       const amountInStroops = paymentService.xlmToStroops(amount)
       await paymentService.sendTip(publicKey, creatorId, amountInStroops)
+
+      try {
+        const creatorAmount = paymentService.calculateCreatorAmount(amountInStroops)
+        await revenueService.recordEarning(creatorId, creatorAmount)
+      } catch (revenueError) {
+        console.warn("[v0] Tip succeeded but revenue tracking failed:", revenueError)
+      }
 
       setSuccess(true)
       setTimeout(() => {
@@ -108,7 +123,12 @@ export function TipDialog({ open, onOpenChange, creatorId, creatorName }: TipDia
               <Button variant="outline" onClick={() => onOpenChange(false)} disabled={processing} className="flex-1">
                 Cancel
               </Button>
-              <Button onClick={handleSendTip} disabled={processing || !isConnected || !amount} className="flex-1">
+              <Button
+                onClick={handleSendTip}
+                disabled={processing || !isConnected || !amount || !contractHealth.isReady}
+                title={!contractHealth.isReady ? `Missing: ${contractHealth.missingKeys.join(", ")}` : undefined}
+                className="flex-1"
+              >
                 {processing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -119,6 +139,9 @@ export function TipDialog({ open, onOpenChange, creatorId, creatorName }: TipDia
                 )}
               </Button>
             </div>
+            {!contractHealth.isReady && (
+              <p className="text-xs text-destructive">Smart contract config missing: {contractHealth.missingKeys.join(", ")}</p>
+            )}
           </div>
         )}
       </DialogContent>

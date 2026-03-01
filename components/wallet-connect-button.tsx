@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Wallet, LogOut, ExternalLink, CheckCircle2, AlertCircle } from "lucide-react"
+import { Wallet, LogOut, ExternalLink, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react"
 import { useWallet } from "@/hooks/use-wallet"
 import {
   DropdownMenu,
@@ -16,13 +16,19 @@ import { detectInstalledWallets, type WalletType } from "@/lib/stellar/wallet"
 import { useState, useEffect } from "react"
 
 export function WalletConnectButton() {
-  const { publicKey, isConnected, isLoading, error, connect, disconnect } = useWallet()
+  const { publicKey, isConnected, isLoading, connect, disconnect } = useWallet()
   const { toast } = useToast()
   const [installedWallets, setInstalledWallets] = useState<ReturnType<typeof detectInstalledWallets>>([])
 
+  const refreshWallets = () => {
+    const refreshed = detectInstalledWallets()
+    setInstalledWallets(refreshed)
+    return refreshed
+  }
+
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setInstalledWallets(detectInstalledWallets())
+      refreshWallets()
     }
   }, [])
 
@@ -33,7 +39,9 @@ export function WalletConnectButton() {
   const handleConnect = async (walletType: WalletType) => {
     console.log("[v0] Wallet connect button clicked:", walletType)
 
-    const wallet = installedWallets.find((w) => w.type === walletType)
+    const refreshed = refreshWallets()
+
+    const wallet = refreshed.find((w) => w.type === walletType)
 
     if (!wallet?.isInstalled && walletType !== "albedo") {
       toast({
@@ -121,7 +129,7 @@ export function WalletConnectButton() {
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={(open) => open && refreshWallets()}>
       <DropdownMenuTrigger asChild>
         <Button disabled={isLoading}>
           <Wallet className="w-4 h-4 mr-2" />
@@ -130,6 +138,20 @@ export function WalletConnectButton() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel>Select Wallet</DropdownMenuLabel>
+        <DropdownMenuItem
+          onClick={(event) => {
+            event.preventDefault()
+            refreshWallets()
+            toast({
+              title: "Wallet list refreshed",
+              description: "Detected wallet extensions have been re-scanned.",
+            })
+          }}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh Wallets
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         {installedWallets.map((wallet) => (
           <DropdownMenuItem

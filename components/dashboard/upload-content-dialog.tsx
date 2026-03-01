@@ -13,6 +13,8 @@ import { Upload, Loader2 } from "lucide-react"
 import { useWallet } from "@/hooks/use-wallet"
 import { contentService } from "@/lib/services/content-service"
 import { useToast } from "@/hooks/use-toast"
+import { getContractHealth } from "@/lib/contract-health"
+import { scanContentFile, type ScannedContentMetadata } from "@/lib/ai/content-scanner"
 
 interface UploadContentDialogProps {
   open: boolean
@@ -21,8 +23,11 @@ interface UploadContentDialogProps {
 
 export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogProps) {
   const { isConnected, publicKey } = useWallet()
+  const contractHealth = getContractHealth()
   const { toast } = useToast()
   const [isUploading, setIsUploading] = useState(false)
+  const [isScanning, setIsScanning] = useState(false)
+  const [scanResult, setScanResult] = useState<ScannedContentMetadata | null>(null)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -31,6 +36,42 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
     file: null as File | null,
   })
 
+  const handleFileSelected = async (file: File | null) => {
+    setFormData({ ...formData, file })
+
+    if (!file) {
+      setScanResult(null)
+      return
+    }
+
+    setIsScanning(true)
+    try {
+      const scanned = await scanContentFile(file)
+      setScanResult(scanned)
+      setFormData((prev) => ({
+        ...prev,
+        file,
+        title: scanned.title,
+        description: scanned.description,
+        contentType: scanned.contentType,
+        price: scanned.suggestedPriceXlm,
+      }))
+      toast({
+        title: "AI scan completed",
+        description: "Content preview generated and form autofilled.",
+      })
+    } catch (error) {
+      console.error("AI scan failed:", error)
+      toast({
+        title: "AI scan failed",
+        description: "Could not auto-fill this file. You can still fill manually.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsScanning(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -38,6 +79,15 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
       toast({
         title: "Wallet not connected",
         description: "Please connect your wallet to upload content",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!contractHealth.isReady) {
+      toast({
+        title: "Contracts not configured",
+        description: `Missing: ${contractHealth.missingKeys.join(", ")}`,
         variant: "destructive",
       })
       return
@@ -77,6 +127,7 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
         price: "",
         file: null,
       })
+      setScanResult(null)
 
       onOpenChange(false)
     } catch (error) {
@@ -100,6 +151,38 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {scanResult && (
+            <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">AI Content Scanner</p>
+                <p className="text-xs text-muted-foreground">Confidence: {Math.round(scanResult.confidence * 100)}%</p>
+              </div>
+
+              <div className="rounded-md overflow-hidden border bg-background">
+                {scanResult.contentType === "image" && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={scanResult.previewUrl} alt="Content preview" className="w-full max-h-64 object-contain" />
+                )}
+                {scanResult.contentType === "video" && (
+                  <video src={scanResult.previewUrl} controls className="w-full max-h-64 object-contain" />
+                )}
+                {scanResult.contentType === "audio" && (
+                  <div className="p-4">
+                    <audio src={scanResult.previewUrl} controls className="w-full" />
+                  </div>
+                )}
+                {scanResult.contentType === "article" && (
+                  <div className="p-4 text-sm text-muted-foreground">Preview unavailable for this file type.</div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-muted-foreground">
+                <p>Format: {scanResult.fileFormat}</p>
+                <p>Size: {scanResult.fileSizeLabel}</p>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input
@@ -164,7 +247,9 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
                 id="file"
                 type="file"
                 className="hidden"
-                onChange={(e) => setFormData({ ...formData, file: e.target.files?.[0] || null })}
+                onChange={(e) => {
+                  void handleFileSelected(e.target.files?.[0] || null)
+                }}
                 accept="video/*,audio/*,image/*"
               />
               <label htmlFor="file" className="cursor-pointer">
@@ -173,6 +258,7 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
                   {formData.file ? formData.file.name : "Click to upload or drag and drop"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Video, audio, or image files</p>
+                {isScanning && <p className="text-xs text-primary mt-2">AI is scanning file and autofilling form...</p>}
               </label>
             </div>
           </div>
@@ -181,17 +267,29 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isUploading || !isConnected}>
+            <Button
+              type="submit"
+              disabled={isUploading || isScanning || !isConnected || !contractHealth.isReady}
+              title={!contractHealth.isReady ? `Missing: ${contractHealth.missingKeys.join(", ")}` : undefined}
+            >
               {isUploading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Uploading...
+                </>
+              ) : isScanning ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  AI Scanning...
                 </>
               ) : (
                 "Upload Content"
               )}
             </Button>
           </div>
+          {!contractHealth.isReady && (
+            <p className="text-xs text-destructive">Smart contract config missing: {contractHealth.missingKeys.join(", ")}</p>
+          )}
         </form>
       </DialogContent>
     </Dialog>

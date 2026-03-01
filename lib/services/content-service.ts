@@ -2,8 +2,15 @@
 
 import { sorobanClient } from "../stellar/soroban-client"
 import { nativeToScVal, scValToNative } from "@stellar/stellar-sdk"
+import { normalizeContentMetadata, normalizeNumberArray } from "./contract-response"
 
 const CONTENT_NFT_CONTRACT = process.env.NEXT_PUBLIC_CONTENT_NFT_CONTRACT!
+
+function assertContractAddress(contractAddress: string, envName: string) {
+  if (!contractAddress) {
+    throw new Error(`${envName} is not configured`)
+  }
+}
 
 export interface ContentMetadata {
   contentId: number
@@ -17,6 +24,8 @@ export interface ContentMetadata {
 export class ContentService {
   async mintContent(creatorAddress: string, metadataUri: string, price: string, contentType: string): Promise<number> {
     try {
+      assertContractAddress(CONTENT_NFT_CONTRACT, "NEXT_PUBLIC_CONTENT_NFT_CONTRACT")
+
       const params = [
         nativeToScVal(creatorAddress, { type: "address" }),
         nativeToScVal(metadataUri, { type: "string" }),
@@ -26,7 +35,7 @@ export class ContentService {
 
       const result = await sorobanClient.invokeContract(CONTENT_NFT_CONTRACT, "mint_content", params)
 
-      return scValToNative(result)
+      return Number(scValToNative(result))
     } catch (error) {
       console.error("Failed to mint content:", error)
       throw error
@@ -35,13 +44,15 @@ export class ContentService {
 
   async getContent(contentId: number): Promise<ContentMetadata | null> {
     try {
+      assertContractAddress(CONTENT_NFT_CONTRACT, "NEXT_PUBLIC_CONTENT_NFT_CONTRACT")
+
       const params = [nativeToScVal(contentId, { type: "u64" })]
 
       const result = await sorobanClient.readContract(CONTENT_NFT_CONTRACT, "get_content", params)
 
       if (!result) return null
 
-      return scValToNative(result)
+      return normalizeContentMetadata(scValToNative(result))
     } catch (error) {
       console.error("Failed to get content:", error)
       return null
@@ -50,6 +61,8 @@ export class ContentService {
 
   async updateContentUri(contentId: number, newUri: string): Promise<void> {
     try {
+      assertContractAddress(CONTENT_NFT_CONTRACT, "NEXT_PUBLIC_CONTENT_NFT_CONTRACT")
+
       const params = [nativeToScVal(contentId, { type: "u64" }), nativeToScVal(newUri, { type: "string" })]
 
       await sorobanClient.invokeContract(CONTENT_NFT_CONTRACT, "update_content_uri", params)
@@ -61,6 +74,8 @@ export class ContentService {
 
   async updatePrice(contentId: number, newPrice: string): Promise<void> {
     try {
+      assertContractAddress(CONTENT_NFT_CONTRACT, "NEXT_PUBLIC_CONTENT_NFT_CONTRACT")
+
       const params = [nativeToScVal(contentId, { type: "u64" }), nativeToScVal(BigInt(newPrice), { type: "i128" })]
 
       await sorobanClient.invokeContract(CONTENT_NFT_CONTRACT, "update_price", params)
@@ -72,11 +87,13 @@ export class ContentService {
 
   async getCreatorContents(creatorAddress: string): Promise<number[]> {
     try {
+      assertContractAddress(CONTENT_NFT_CONTRACT, "NEXT_PUBLIC_CONTENT_NFT_CONTRACT")
+
       const params = [nativeToScVal(creatorAddress, { type: "address" })]
 
       const result = await sorobanClient.readContract(CONTENT_NFT_CONTRACT, "get_creator_contents", params)
 
-      return scValToNative(result) || []
+      return normalizeNumberArray(scValToNative(result))
     } catch (error) {
       console.error("Failed to get creator contents:", error)
       return []

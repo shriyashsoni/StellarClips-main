@@ -5,10 +5,14 @@ import { usePathname } from "next/navigation"
 import Image from "next/image"
 import { WalletConnectButton } from "./wallet-connect-button"
 import { useWallet } from "@/hooks/use-wallet"
+import { Badge } from "@/components/ui/badge"
+import { getContractHealth } from "@/lib/contract-health"
+import { AlertCircle, CheckCircle2 } from "lucide-react"
 
 export function Navigation() {
   const pathname = usePathname()
   const { isConnected } = useWallet()
+  const contractHealth = getContractHealth()
 
   const isActive = (path: string) => pathname === path
 
@@ -72,6 +76,16 @@ export function Navigation() {
                 </Link>
               </>
             )}
+
+            <Badge variant={contractHealth.isReady ? "secondary" : "destructive"}>
+              {contractHealth.isReady ? (
+                <CheckCircle2 className="h-3 w-3" />
+              ) : (
+                <AlertCircle className="h-3 w-3" />
+              )}
+              {contractHealth.network}: {contractHealth.configured}/{contractHealth.total}
+            </Badge>
+
             <WalletConnectButton />
           </div>
         </div>

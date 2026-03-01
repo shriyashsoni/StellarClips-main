@@ -2,15 +2,29 @@
 
 set -euo pipefail
 
-# Usage: ./deploy.sh <network> <source_account_or_secret>
-# Example: ./deploy.sh testnet SXXXXXXXXXXXXXXXXXXXXXXXX
+# Usage: ./deploy.sh <network> <source_account_or_secret> [platform_address] [token_address]
+# Example: ./deploy.sh testnet SXXXXXXXXXXXXXXXXXXXXXXXX G... C...
 
 NETWORK="${1:-testnet}"
 SOURCE="${2:-}"
+PLATFORM_ADDRESS="${3:-${SOROBAN_PLATFORM_ADDRESS:-}}"
+TOKEN_ADDRESS="${4:-${SOROBAN_TOKEN_ADDRESS:-}}"
 
 if [[ -z "$SOURCE" ]]; then
     echo "❌ Source account/secret required"
-    echo "Usage: ./deploy.sh <network> <source_account_or_secret>"
+    echo "Usage: ./deploy.sh <network> <source_account_or_secret> [platform_address] [token_address]"
+    exit 1
+fi
+
+if [[ -z "$PLATFORM_ADDRESS" ]]; then
+    echo "❌ Platform address required"
+    echo "Provide as third argument or SOROBAN_PLATFORM_ADDRESS env var"
+    exit 1
+fi
+
+if [[ -z "$TOKEN_ADDRESS" ]]; then
+    echo "❌ Token address required"
+    echo "Provide as fourth argument or SOROBAN_TOKEN_ADDRESS env var"
     exit 1
 fi
 
@@ -56,6 +70,23 @@ SUBSCRIPTION_ADDRESS="$(deploy_contract "Subscription" "subscription/target/wasm
 PAYMENT_ADDRESS="$(deploy_contract "Payment" "payment/target/wasm32-unknown-unknown/release/payment_contract.wasm" | tail -n1)"
 REVENUE_ADDRESS="$(deploy_contract "Revenue" "revenue/target/wasm32-unknown-unknown/release/revenue_contract.wasm" | tail -n1)"
 
+echo "⚙️ Initializing Payment contract..."
+soroban contract invoke \
+    --id "$PAYMENT_ADDRESS" \
+    --source-account "$SOURCE" \
+    --network "$NETWORK" \
+    -- initialize \
+    --platform_address "$PLATFORM_ADDRESS" \
+    --token_address "$TOKEN_ADDRESS" >/dev/null
+
+echo "⚙️ Initializing Revenue contract..."
+soroban contract invoke \
+    --id "$REVENUE_ADDRESS" \
+    --source-account "$SOURCE" \
+    --network "$NETWORK" \
+    -- initialize \
+    --token_address "$TOKEN_ADDRESS" >/dev/null
+
 echo
 echo "✅ All contracts deployed"
 echo
@@ -63,3 +94,9 @@ echo "NEXT_PUBLIC_CONTENT_NFT_CONTRACT=$CONTENT_NFT_ADDRESS"
 echo "NEXT_PUBLIC_SUBSCRIPTION_CONTRACT=$SUBSCRIPTION_ADDRESS"
 echo "NEXT_PUBLIC_PAYMENT_CONTRACT=$PAYMENT_ADDRESS"
 echo "NEXT_PUBLIC_REVENUE_CONTRACT=$REVENUE_ADDRESS"
+echo
+echo "# Runtime config"
+echo "NEXT_PUBLIC_SIMULATION_ACCOUNT=$PLATFORM_ADDRESS"
+echo "# Deployment init inputs"
+echo "SOROBAN_PLATFORM_ADDRESS=$PLATFORM_ADDRESS"
+echo "SOROBAN_TOKEN_ADDRESS=$TOKEN_ADDRESS"

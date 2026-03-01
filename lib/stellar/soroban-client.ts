@@ -1,6 +1,6 @@
 "use client"
 
-import { Contract, rpc as SorobanRpc, TransactionBuilder, Networks, BASE_FEE } from "@stellar/stellar-sdk"
+import { Account, BASE_FEE, Contract, Networks, rpc as SorobanRpc, TransactionBuilder } from "@stellar/stellar-sdk"
 import { walletService } from "./wallet"
 
 const RPC_URL =
@@ -11,6 +11,7 @@ const NETWORK_PASSPHRASE = process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
 
 export class SorobanClient {
   private server: SorobanRpc.Server | null = null
+  private static readonly DEFAULT_SIMULATION_ACCOUNT = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
 
   private getServer(): SorobanRpc.Server {
     if (typeof window === "undefined") {
@@ -49,10 +50,16 @@ export class SorobanClient {
       const signedTransaction = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE)
       const response = await server.sendTransaction(signedTransaction)
 
+      if (response.status === "ERROR") {
+        const message = response.errorResult ? ` (${response.errorResult.toXDR("base64")})` : ""
+        throw new Error(`Transaction submission failed${message}`)
+      }
+
       if (response.status === "PENDING") {
         let getResponse = await server.getTransaction(response.hash)
+        const startedAt = Date.now()
 
-        while (getResponse.status === "NOT_FOUND") {
+        while (getResponse.status === "NOT_FOUND" && Date.now() - startedAt < 30_000) {
           await new Promise((resolve) => setTimeout(resolve, 1000))
           getResponse = await server.getTransaction(response.hash)
         }
@@ -75,9 +82,8 @@ export class SorobanClient {
     try {
       const server = this.getServer()
       const contract = new Contract(contractAddress)
-      const publicKey = walletService.getPublicKey() || "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
-
-      const account = await server.getAccount(publicKey)
+      const publicKey = walletService.getPublicKey() || process.env.NEXT_PUBLIC_SIMULATION_ACCOUNT || SorobanClient.DEFAULT_SIMULATION_ACCOUNT
+      const account = new Account(publicKey, "0")
 
       const transaction = new TransactionBuilder(account, {
         fee: BASE_FEE,
@@ -92,7 +98,7 @@ export class SorobanClient {
       if (SorobanRpc.Api.isSimulationSuccess(response)) {
         return response.result?.retval
       } else {
-        throw new Error("Simulation failed")
+        throw new Error("Contract simulation failed")
       }
     } catch (error) {
       console.error("Contract read failed:", error)

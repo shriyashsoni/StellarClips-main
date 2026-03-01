@@ -13,6 +13,7 @@ import { Loader2 } from "lucide-react"
 import { useWallet } from "@/hooks/use-wallet"
 import { subscriptionService } from "@/lib/services/subscription-service"
 import { useToast } from "@/hooks/use-toast"
+import { getContractHealth } from "@/lib/contract-health"
 
 interface CreateTierDialogProps {
   open: boolean
@@ -21,6 +22,7 @@ interface CreateTierDialogProps {
 
 export function CreateTierDialog({ open, onOpenChange }: CreateTierDialogProps) {
   const { isConnected, publicKey } = useWallet()
+  const contractHealth = getContractHealth()
   const { toast } = useToast()
   const [isCreating, setIsCreating] = useState(false)
   const [formData, setFormData] = useState({
@@ -37,6 +39,15 @@ export function CreateTierDialog({ open, onOpenChange }: CreateTierDialogProps) 
       toast({
         title: "Wallet not connected",
         description: "Please connect your wallet to create a tier",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!contractHealth.isReady) {
+      toast({
+        title: "Contracts not configured",
+        description: `Missing: ${contractHealth.missingKeys.join(", ")}`,
         variant: "destructive",
       })
       return
@@ -143,7 +154,11 @@ export function CreateTierDialog({ open, onOpenChange }: CreateTierDialogProps) 
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isCreating}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isCreating || !isConnected}>
+            <Button
+              type="submit"
+              disabled={isCreating || !isConnected || !contractHealth.isReady}
+              title={!contractHealth.isReady ? `Missing: ${contractHealth.missingKeys.join(", ")}` : undefined}
+            >
               {isCreating ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -154,6 +169,9 @@ export function CreateTierDialog({ open, onOpenChange }: CreateTierDialogProps) 
               )}
             </Button>
           </div>
+          {!contractHealth.isReady && (
+            <p className="text-xs text-destructive">Smart contract config missing: {contractHealth.missingKeys.join(", ")}</p>
+          )}
         </form>
       </DialogContent>
     </Dialog>

@@ -1,12 +1,42 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Sparkles, Zap, Shield, TrendingUp, Wallet, Play } from "lucide-react"
+import { AlertCircle, CheckCircle2, Sparkles, Zap, Shield, TrendingUp, Wallet, Play } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { getContractHealth } from "@/lib/contract-health"
 
 export default function HomePage() {
+  const contractHealth = getContractHealth()
+
   return (
     <div className="min-h-screen bg-background">
+      <section className="container mx-auto px-4 pt-6">
+        <Card
+          className={`p-4 border-2 ${contractHealth.isReady ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}
+        >
+          <div className="flex items-start gap-3">
+            {contractHealth.isReady ? (
+              <CheckCircle2 className="h-5 w-5 mt-0.5 text-primary" />
+            ) : (
+              <AlertCircle className="h-5 w-5 mt-0.5 text-destructive" />
+            )}
+            <div className="space-y-1">
+              <p className="font-semibold">
+                Smart contracts: {contractHealth.configured}/{contractHealth.total} configured ({contractHealth.network})
+              </p>
+              {!contractHealth.isReady && (
+                <p className="text-sm text-muted-foreground">
+                  Missing config: {contractHealth.missingKeys.join(", ")}. Add them to .env.local before using on-chain actions.
+                </p>
+              )}
+              {contractHealth.isReady && (
+                <p className="text-sm text-muted-foreground">On-chain content, payments, subscriptions, and earnings are ready.</p>
+              )}
+            </div>
+          </div>
+        </Card>
+      </section>
+
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 md:py-32 border-b-2 border-border">
         <div className="max-w-4xl mx-auto text-center">

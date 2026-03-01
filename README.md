@@ -142,6 +142,7 @@ NEXT_PUBLIC_CONTENT_NFT_CONTRACT=<DEPLOYED_CONTRACT_ID>
 NEXT_PUBLIC_SUBSCRIPTION_CONTRACT=<DEPLOYED_CONTRACT_ID>
 NEXT_PUBLIC_PAYMENT_CONTRACT=<DEPLOYED_CONTRACT_ID>
 NEXT_PUBLIC_REVENUE_CONTRACT=<DEPLOYED_CONTRACT_ID>
+NEXT_PUBLIC_SIMULATION_ACCOUNT=<FUNDED_TESTNET_ACCOUNT>
 
 # Optional legacy/config keys used in config modules
 NEXT_PUBLIC_TIP_CONTRACT_ID=<OPTIONAL_CONTRACT_ID>
@@ -192,11 +193,11 @@ cd contracts
 
 ### 2) Deploy contracts
 ```bash
-./deploy.sh testnet <source_account_or_secret>
+./deploy.sh testnet <source_account_or_secret> <platform_address> <token_contract_address>
 ```
 
 Alternative scripts:
-- `./deploy-testnet.sh <source_account_or_secret>`
+- `./deploy-testnet.sh <source_account_or_secret> <platform_address> <token_contract_address>`
 - `./deploy-via-rpc.sh testnet <source_account_or_secret>`
 - `node ./deploy-with-nodejs.js testnet <source_account_or_secret>`
 
