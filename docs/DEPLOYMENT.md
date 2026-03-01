@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-1. Node.js 18+ installed
+1. Node.js 20+ installed
 2. PostgreSQL database
 3. Stellar account (testnet or mainnet)
 4. IPFS node or Pinata account (optional)
@@ -76,8 +76,8 @@ cd contracts
 ### Local Development
 
 \`\`\`bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 \`\`\`
 
 ### Production (Vercel)
@@ -86,6 +86,15 @@ npm run dev
 2. Import project in Vercel
 3. Add environment variables
 4. Deploy
+
+Recommended Vercel settings:
+- Framework preset: `Next.js`
+- Install command: `pnpm install --frozen-lockfile`
+- Build command: `pnpm build`
+- Node.js version: `20.x` or newer
+
+Important:
+- Do not commit `contracts/**/target` artifacts. They can make deployments too large and slow.
 
 ### Docker Deployment
 
