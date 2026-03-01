@@ -3,8 +3,9 @@
 import { sorobanClient } from "../stellar/soroban-client"
 import { nativeToScVal, scValToNative } from "@stellar/stellar-sdk"
 import { normalizeContentMetadata, normalizeNumberArray } from "./contract-response"
+import { STELLAR_CONFIG } from "@/lib/stellar-config"
 
-const CONTENT_NFT_CONTRACT = process.env.NEXT_PUBLIC_CONTENT_NFT_CONTRACT!
+const CONTENT_NFT_CONTRACT = STELLAR_CONFIG.CONTRACTS.CONTENT_NFT_CONTRACT
 
 function assertContractAddress(contractAddress: string, envName: string) {
   if (!contractAddress) {

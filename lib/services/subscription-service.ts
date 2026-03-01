@@ -3,8 +3,9 @@
 import { sorobanClient } from "../stellar/soroban-client"
 import { nativeToScVal, scValToNative } from "@stellar/stellar-sdk"
 import { normalizeSubscription, normalizeSubscriptionTier, toBoolean, toNumber } from "./contract-response"
+import { STELLAR_CONFIG } from "@/lib/stellar-config"
 
-const SUBSCRIPTION_CONTRACT = process.env.NEXT_PUBLIC_SUBSCRIPTION_CONTRACT!
+const SUBSCRIPTION_CONTRACT = STELLAR_CONFIG.CONTRACTS.SUBSCRIPTION_CONTRACT
 
 function assertContractAddress(contractAddress: string, envName: string) {
   if (!contractAddress) {

@@ -3,8 +3,9 @@
 import { sorobanClient } from "../stellar/soroban-client"
 import { nativeToScVal, scValToNative } from "@stellar/stellar-sdk"
 import { normalizeCreatorBalance, toStringValue } from "./contract-response"
+import { STELLAR_CONFIG } from "@/lib/stellar-config"
 
-const REVENUE_CONTRACT = process.env.NEXT_PUBLIC_REVENUE_CONTRACT!
+const REVENUE_CONTRACT = STELLAR_CONFIG.CONTRACTS.REVENUE_CONTRACT
 
 function assertContractAddress(contractAddress: string, envName: string) {
   if (!contractAddress) {
