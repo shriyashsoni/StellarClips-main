@@ -1,5 +1,7 @@
 "use client"
 
+import { getActiveNetwork } from "./network"
+
 export type WalletType = "freighter" | "albedo" | "xbull" | "rabet"
 
 export interface WalletState {
@@ -281,6 +283,8 @@ class StellarWalletService {
     console.log("[v0] Signing transaction with", this.state.walletType)
 
     try {
+      const network = getActiveNetwork()
+
       switch (this.state.walletType) {
         case "freighter":
           const freighter = getFreighterProvider()
@@ -290,7 +294,7 @@ class StellarWalletService {
 
           try {
             const signed = await freighter.signTransaction(xdr, {
-              network: process.env.NEXT_PUBLIC_STELLAR_NETWORK || "testnet",
+              network,
             })
             const signedXdr = extractSignedXdr(signed)
             if (signedXdr) return signedXdr
@@ -307,7 +311,7 @@ class StellarWalletService {
 
           const albedoResult = await albedo.tx({
             xdr,
-            network: process.env.NEXT_PUBLIC_STELLAR_NETWORK || "testnet",
+            network,
           })
           {
             const signedXdr = extractSignedXdr(albedoResult)
@@ -333,7 +337,7 @@ class StellarWalletService {
           }
 
           const rabetResult = await rabet.sign(xdr, {
-            network: process.env.NEXT_PUBLIC_STELLAR_NETWORK || "testnet",
+            network,
           })
           {
             const signedXdr = extractSignedXdr(rabetResult)

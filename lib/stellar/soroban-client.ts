@@ -1,27 +1,37 @@
 "use client"
 
-import { Account, BASE_FEE, Contract, Networks, rpc as SorobanRpc, TransactionBuilder } from "@stellar/stellar-sdk"
+import { Account, BASE_FEE, Contract, rpc as SorobanRpc, TransactionBuilder } from "@stellar/stellar-sdk"
 import { walletService } from "./wallet"
-
-const RPC_URL =
-  process.env.NEXT_PUBLIC_STELLAR_RPC_URL ||
-  process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ||
-  "https://soroban-testnet.stellar.org"
-const NETWORK_PASSPHRASE = process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet" ? Networks.PUBLIC : Networks.TESTNET
+import { getActiveNetwork, getHorizonUrl, getNetworkPassphrase, getSorobanRpcUrl } from "./network"
 
 export class SorobanClient {
-  private server: SorobanRpc.Server | null = null
+  private servers = new Map<string, SorobanRpc.Server>()
   private static readonly DEFAULT_SIMULATION_ACCOUNT = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
 
-  private getServer(): SorobanRpc.Server {
+  private getNetworkConfig() {
+    const network = getActiveNetwork()
+
+    return {
+      network,
+      rpcUrl: getSorobanRpcUrl(network),
+      horizonUrl: getHorizonUrl(network),
+      networkPassphrase: getNetworkPassphrase(network),
+    }
+  }
+
+  private getServer(rpcUrl: string): SorobanRpc.Server {
     if (typeof window === "undefined") {
       throw new Error("SorobanClient can only be used in the browser")
     }
 
-    if (!this.server) {
-      this.server = new SorobanRpc.Server(RPC_URL)
+    const cached = this.servers.get(rpcUrl)
+    if (cached) {
+      return cached
     }
-    return this.server
+
+    const server = new SorobanRpc.Server(rpcUrl)
+    this.servers.set(rpcUrl, server)
+    return server
   }
 
   async invokeContract(contractAddress: string, method: string, params: any[]): Promise<any> {
@@ -31,13 +41,14 @@ export class SorobanClient {
     }
 
     try {
-      const server = this.getServer()
+      const { rpcUrl, networkPassphrase } = this.getNetworkConfig()
+      const server = this.getServer(rpcUrl)
       const account = await server.getAccount(publicKey)
       const contract = new Contract(contractAddress)
 
       const transaction = new TransactionBuilder(account, {
         fee: BASE_FEE,
-        networkPassphrase: NETWORK_PASSPHRASE,
+        networkPassphrase,
       })
         .addOperation(contract.call(method, ...params))
         .setTimeout(30)
@@ -47,7 +58,7 @@ export class SorobanClient {
       const xdr = preparedTransaction.toXDR()
       const signedXdr = await walletService.signTransaction(xdr)
 
-      const signedTransaction = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE)
+      const signedTransaction = TransactionBuilder.fromXDR(signedXdr, networkPassphrase)
       const response = await server.sendTransaction(signedTransaction)
 
       if (response.status === "ERROR") {
@@ -80,14 +91,15 @@ export class SorobanClient {
 
   async readContract(contractAddress: string, method: string, params: any[]): Promise<any> {
     try {
-      const server = this.getServer()
+      const { rpcUrl, networkPassphrase } = this.getNetworkConfig()
+      const server = this.getServer(rpcUrl)
       const contract = new Contract(contractAddress)
       const publicKey = walletService.getPublicKey() || process.env.NEXT_PUBLIC_SIMULATION_ACCOUNT || SorobanClient.DEFAULT_SIMULATION_ACCOUNT
       const account = new Account(publicKey, "0")
 
       const transaction = new TransactionBuilder(account, {
         fee: BASE_FEE,
-        networkPassphrase: NETWORK_PASSPHRASE,
+        networkPassphrase,
       })
         .addOperation(contract.call(method, ...params))
         .setTimeout(30)
@@ -108,11 +120,7 @@ export class SorobanClient {
 
   async getAccountBalance(publicKey: string): Promise<string> {
     try {
-      const horizonUrl =
-        process.env.NEXT_PUBLIC_HORIZON_URL ||
-        (process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
-          ? "https://horizon.stellar.org"
-          : "https://horizon-testnet.stellar.org")
+      const { horizonUrl } = this.getNetworkConfig()
 
       const response = await fetch(`${horizonUrl}/accounts/${publicKey}`)
 

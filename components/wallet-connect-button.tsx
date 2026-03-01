@@ -3,22 +3,49 @@
 import { Button } from "@/components/ui/button"
 import { Wallet, LogOut, ExternalLink, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react"
 import { useWallet } from "@/hooks/use-wallet"
+import { useStellarNetwork } from "@/hooks/use-stellar-network"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
 import { detectInstalledWallets, type WalletType } from "@/lib/stellar/wallet"
 import { useState, useEffect } from "react"
+import { sorobanClient } from "@/lib/stellar/soroban-client"
+import { formatXLM } from "@/lib/stellar-utils"
 
 export function WalletConnectButton() {
   const { publicKey, isConnected, isLoading, connect, disconnect } = useWallet()
+  const { network, setNetwork } = useStellarNetwork()
   const { toast } = useToast()
   const [installedWallets, setInstalledWallets] = useState<ReturnType<typeof detectInstalledWallets>>([])
+  const [balance, setBalance] = useState<string>("0")
+  const [loadingBalance, setLoadingBalance] = useState(false)
+
+  useEffect(() => {
+    const loadBalance = async () => {
+      if (!publicKey || !isConnected) {
+        setBalance("0")
+        return
+      }
+
+      setLoadingBalance(true)
+      try {
+        const xlmBalance = await sorobanClient.getAccountBalance(publicKey)
+        setBalance(xlmBalance)
+      } finally {
+        setLoadingBalance(false)
+      }
+    }
+
+    void loadBalance()
+  }, [publicKey, isConnected, network])
 
   const refreshWallets = () => {
     const refreshed = detectInstalledWallets()
@@ -96,6 +123,16 @@ export function WalletConnectButton() {
     }
   }
 
+  const handleNetworkChange = (nextNetwork: string) => {
+    if (nextNetwork !== "testnet" && nextNetwork !== "mainnet") return
+
+    setNetwork(nextNetwork)
+    toast({
+      title: "Network switched",
+      description: `Active chain changed to ${nextNetwork}.`,
+    })
+  }
+
   if (isConnected && publicKey) {
     return (
       <DropdownMenu>
@@ -107,6 +144,34 @@ export function WalletConnectButton() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Wallet</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="text-xs text-muted-foreground">Network</DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={network} onValueChange={handleNetworkChange}>
+            <DropdownMenuRadioItem value="testnet">Testnet</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="mainnet">Mainnet</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem disabled>
+            Balance: {loadingBalance ? "Loading..." : `${formatXLM(Number.parseFloat(balance || "0"))} XLM`}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              void (async () => {
+                if (!publicKey) return
+                setLoadingBalance(true)
+                try {
+                  const xlmBalance = await sorobanClient.getAccountBalance(publicKey)
+                  setBalance(xlmBalance)
+                  toast({ title: "Balance refreshed" })
+                } finally {
+                  setLoadingBalance(false)
+                }
+              })()
+            }}
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh Balance
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => {
