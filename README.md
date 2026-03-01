@@ -194,6 +194,9 @@ cd contracts
 ### 2) Deploy contracts
 ```bash
 ./deploy.sh testnet <source_account_or_secret> <platform_address> <token_contract_address>
+
+# optional 5th arg: upload fee in stroops (default 100000000 = 10 XLM)
+./deploy.sh testnet <source_account_or_secret> <platform_address> <token_contract_address> 100000000
 ```
 
 Alternative scripts:

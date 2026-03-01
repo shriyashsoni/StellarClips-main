@@ -2,13 +2,14 @@
 
 set -euo pipefail
 
-# Usage: ./deploy.sh <network> <source_account_or_secret> [platform_address] [token_address]
-# Example: ./deploy.sh testnet SXXXXXXXXXXXXXXXXXXXXXXXX G... C...
+# Usage: ./deploy.sh <network> <source_account_or_secret> [platform_address] [token_address] [upload_fee_stroops]
+# Example: ./deploy.sh testnet SXXXXXXXXXXXXXXXXXXXXXXXX G... C... 100000000
 
 NETWORK="${1:-testnet}"
 SOURCE="${2:-}"
 PLATFORM_ADDRESS="${3:-${SOROBAN_PLATFORM_ADDRESS:-}}"
 TOKEN_ADDRESS="${4:-${SOROBAN_TOKEN_ADDRESS:-}}"
+UPLOAD_FEE_STROOPS="${5:-${SOROBAN_UPLOAD_FEE_STROOPS:-100000000}}"
 
 if [[ -z "$SOURCE" ]]; then
     echo "❌ Source account/secret required"
@@ -25,6 +26,11 @@ fi
 if [[ -z "$TOKEN_ADDRESS" ]]; then
     echo "❌ Token address required"
     echo "Provide as fourth argument or SOROBAN_TOKEN_ADDRESS env var"
+    exit 1
+fi
+
+if ! [[ "$UPLOAD_FEE_STROOPS" =~ ^[0-9]+$ ]]; then
+    echo "❌ Upload fee must be a non-negative integer stroop amount"
     exit 1
 fi
 
@@ -70,6 +76,16 @@ SUBSCRIPTION_ADDRESS="$(deploy_contract "Subscription" "subscription/target/wasm
 PAYMENT_ADDRESS="$(deploy_contract "Payment" "payment/target/wasm32-unknown-unknown/release/payment_contract.wasm" | tail -n1)"
 REVENUE_ADDRESS="$(deploy_contract "Revenue" "revenue/target/wasm32-unknown-unknown/release/revenue_contract.wasm" | tail -n1)"
 
+echo "⚙️ Initializing Content NFT contract..."
+soroban contract invoke \
+    --id "$CONTENT_NFT_ADDRESS" \
+    --source-account "$SOURCE" \
+    --network "$NETWORK" \
+    -- initialize \
+    --platform_address "$PLATFORM_ADDRESS" \
+    --token_address "$TOKEN_ADDRESS" \
+    --upload_fee "$UPLOAD_FEE_STROOPS" >/dev/null
+
 echo "⚙️ Initializing Payment contract..."
 soroban contract invoke \
     --id "$PAYMENT_ADDRESS" \
@@ -100,3 +116,4 @@ echo "NEXT_PUBLIC_SIMULATION_ACCOUNT=$PLATFORM_ADDRESS"
 echo "# Deployment init inputs"
 echo "SOROBAN_PLATFORM_ADDRESS=$PLATFORM_ADDRESS"
 echo "SOROBAN_TOKEN_ADDRESS=$TOKEN_ADDRESS"
+echo "SOROBAN_UPLOAD_FEE_STROOPS=$UPLOAD_FEE_STROOPS"

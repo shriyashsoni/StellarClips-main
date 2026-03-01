@@ -1,5 +1,7 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String, Symbol, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, token, Address, Env, String, Symbol, Vec};
+
+const DEFAULT_UPLOAD_FEE: i128 = 100_000_000; // 10 XLM in stroops
 
 #[contracttype]
 #[derive(Clone)]
@@ -17,6 +19,9 @@ pub enum DataKey {
     ContentCounter,
     Content(u64),
     CreatorContents(Address),
+    PlatformAddress,
+    TokenAddress,
+    UploadFee,
 }
 
 #[contract]
@@ -24,6 +29,20 @@ pub struct ContentNFTContract;
 
 #[contractimpl]
 impl ContentNFTContract {
+    /// Initialize contract with platform receiver, token, and upload fee.
+    pub fn initialize(env: Env, platform_address: Address, token_address: Address, upload_fee: Option<i128>) {
+        if env.storage().instance().has(&DataKey::PlatformAddress) {
+            panic!("Already initialized")
+        }
+
+        let fee = upload_fee.unwrap_or(DEFAULT_UPLOAD_FEE);
+        assert!(fee >= 0, "Invalid upload fee");
+
+        env.storage().instance().set(&DataKey::PlatformAddress, &platform_address);
+        env.storage().instance().set(&DataKey::TokenAddress, &token_address);
+        env.storage().instance().set(&DataKey::UploadFee, &fee);
+    }
+
     /// Mint new content NFT
     pub fn mint_content(
         env: Env,
@@ -33,6 +52,28 @@ impl ContentNFTContract {
         content_type: String,
     ) -> u64 {
         creator.require_auth();
+
+        // Charge upload fee to creator (on-chain)
+        let platform_address: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::PlatformAddress)
+            .expect("Platform address not set");
+
+        let token_address: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::TokenAddress)
+            .expect("Token address not set");
+
+        let upload_fee: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::UploadFee)
+            .unwrap_or(DEFAULT_UPLOAD_FEE);
+
+        let token_client = token::Client::new(&env, &token_address);
+        token_client.transfer(&creator, &platform_address, &upload_fee);
 
         // Get and increment content counter
         let counter_key = DataKey::ContentCounter;
@@ -72,10 +113,18 @@ impl ContentNFTContract {
         // Emit event
         env.events().publish(
             (Symbol::new(&env, "content_minted"),),
-            (new_content_id, creator, price),
+            (new_content_id, creator, price, upload_fee),
         );
 
         new_content_id
+    }
+
+    /// Read current upload fee (stroops)
+    pub fn get_upload_fee(env: Env) -> i128 {
+        env.storage()
+            .instance()
+            .get(&DataKey::UploadFee)
+            .unwrap_or(DEFAULT_UPLOAD_FEE)
     }
 
     /// Get content information

@@ -4,11 +4,12 @@ set -euo pipefail
 
 # Usage:
 #   SOROBAN_SOURCE=<secret-or-identity> SOROBAN_PLATFORM_ADDRESS=<G...> SOROBAN_TOKEN_ADDRESS=<C...> ./deploy-testnet.sh
-#   ./deploy-testnet.sh <secret-or-identity> <platform-address> <token-address>
+#   ./deploy-testnet.sh <secret-or-identity> <platform-address> <token-address> [upload-fee-stroops]
 
 SOURCE="${1:-${SOROBAN_SOURCE:-}}"
 PLATFORM_ADDRESS="${2:-${SOROBAN_PLATFORM_ADDRESS:-}}"
 TOKEN_ADDRESS="${3:-${SOROBAN_TOKEN_ADDRESS:-}}"
+UPLOAD_FEE_STROOPS="${4:-${SOROBAN_UPLOAD_FEE_STROOPS:-100000000}}"
 
 if [[ -z "$SOURCE" ]]; then
   echo "❌ Missing source account/secret"
@@ -31,4 +32,4 @@ echo "🚀 Building contracts..."
 
 echo
 echo "🚀 Deploying contracts to testnet..."
-"$SCRIPT_DIR/deploy.sh" testnet "$SOURCE" "$PLATFORM_ADDRESS" "$TOKEN_ADDRESS"
+"$SCRIPT_DIR/deploy.sh" testnet "$SOURCE" "$PLATFORM_ADDRESS" "$TOKEN_ADDRESS" "$UPLOAD_FEE_STROOPS"

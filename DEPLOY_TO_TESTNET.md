@@ -24,7 +24,7 @@ Use either an identity configured in Soroban CLI or a secret key.
 
 ```bash
 cd contracts
-./deploy-testnet.sh <source> <platform_address> <token_contract_address>
+./deploy-testnet.sh <source> <platform_address> <token_contract_address> 100000000
 ```
 
 ### Option B: pass source via environment variable
@@ -34,6 +34,7 @@ cd contracts
 SOROBAN_SOURCE=<source> \
 SOROBAN_PLATFORM_ADDRESS=<platform_address> \
 SOROBAN_TOKEN_ADDRESS=<token_contract_address> \
+SOROBAN_UPLOAD_FEE_STROOPS=100000000 \
 ./deploy-testnet.sh
 ```
 

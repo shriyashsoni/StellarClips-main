@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,6 +17,7 @@ import { getContractHealth } from "@/lib/contract-health"
 import { describeContentDataDirectly, scanContentLink, type ScannedContentMetadata } from "@/lib/ai/content-scanner"
 import { Checkbox } from "@/components/ui/checkbox"
 import { encryptContentLink } from "@/lib/security/content-encryption"
+import { formatXLM } from "@/lib/stellar-utils"
 
 interface UploadContentDialogProps {
   open: boolean
@@ -34,6 +35,7 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
   const [encryptLink, setEncryptLink] = useState(false)
   const [accessKey, setAccessKey] = useState("")
   const [publishedSecret, setPublishedSecret] = useState<{ contentId: number; key: string } | null>(null)
+  const [uploadFeeXlm, setUploadFeeXlm] = useState<number>(10)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -42,6 +44,25 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
     contentLink: "",
     thumbnailLink: "",
   })
+
+  const contentPriceXlm = Number.parseFloat(formData.price || "0") || 0
+  const uploadChargeXlm = uploadFeeXlm
+
+  const isValidContentLink = (value: string): boolean => {
+    const trimmed = value.trim()
+    return /^(https?:\/\/|ipfs:\/\/|ar:\/\/)/i.test(trimmed)
+  }
+
+  const loadUploadFee = async () => {
+    const fee = await contentService.getUploadFeeXlm()
+    if (Number.isFinite(fee) && fee > 0) {
+      setUploadFeeXlm(fee)
+    }
+  }
+
+  useEffect(() => {
+    void loadUploadFee()
+  }, [])
 
   const handleLinkScan = async (contentLink: string) => {
     setFormData((prev) => ({ ...prev, contentLink }))
@@ -105,6 +126,15 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
       toast({
         title: "Missing content link",
         description: "Please add a content URL before publishing",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!isValidContentLink(formData.contentLink)) {
+      toast({
+        title: "Invalid content link",
+        description: "Use a valid https://, ipfs://, or ar:// link",
         variant: "destructive",
       })
       return
@@ -278,7 +308,7 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
             <div className="flex gap-2">
               <Input
                 id="content-link"
-                type="url"
+                type="text"
                 placeholder="https://... or ipfs://..."
                 value={formData.contentLink}
                 onChange={(e) => setFormData((prev) => ({ ...prev, contentLink: e.target.value }))}
@@ -290,6 +320,7 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">Publishing is link-based only. Local file upload is disabled.</p>
+            <p className="text-xs text-primary">On-chain upload fee: {uploadFeeXlm} XLM per content post</p>
           </div>
 
           <div className="space-y-2">
@@ -400,6 +431,27 @@ export function UploadContentDialog({ open, onOpenChange }: UploadContentDialogP
                 required
               />
             </div>
+          </div>
+
+          <div className="space-y-3 rounded-lg border p-4 bg-muted/20">
+            <p className="text-sm font-semibold">On-chain transaction breakdown</p>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Buyer content price</span>
+                <span>{formatXLM(contentPriceXlm)} XLM</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Creator upload fee</span>
+                <span>{formatXLM(uploadChargeXlm)} XLM</span>
+              </div>
+              <div className="border-t pt-2 flex items-center justify-between font-medium">
+                <span>Charge now (when posting)</span>
+                <span>{formatXLM(uploadChargeXlm)} XLM</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Posting content charges the creator upload fee immediately on-chain. Buyer price is charged later when someone purchases.
+            </p>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

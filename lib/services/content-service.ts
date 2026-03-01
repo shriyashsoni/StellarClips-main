@@ -23,6 +23,22 @@ export interface ContentMetadata {
 }
 
 export class ContentService {
+  async getUploadFeeStroops(): Promise<string> {
+    try {
+      assertContractAddress(CONTENT_NFT_CONTRACT, "NEXT_PUBLIC_CONTENT_NFT_CONTRACT")
+      const result = await sorobanClient.readContract(CONTENT_NFT_CONTRACT, "get_upload_fee", [])
+      return String(scValToNative(result) || "100000000")
+    } catch (error) {
+      console.error("Failed to get upload fee, falling back to default:", error)
+      return "100000000"
+    }
+  }
+
+  async getUploadFeeXlm(): Promise<number> {
+    const stroops = await this.getUploadFeeStroops()
+    return Number(stroops) / 10_000_000
+  }
+
   async mintContent(creatorAddress: string, metadataUri: string, price: string, contentType: string): Promise<number> {
     try {
       assertContractAddress(CONTENT_NFT_CONTRACT, "NEXT_PUBLIC_CONTENT_NFT_CONTRACT")
