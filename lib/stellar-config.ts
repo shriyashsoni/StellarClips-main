@@ -4,15 +4,18 @@ export const STELLAR_CONFIG = {
   // Network settings
   NETWORK: process.env.NEXT_PUBLIC_STELLAR_NETWORK || "testnet",
   HORIZON_URL:
-    process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
+    process.env.NEXT_PUBLIC_HORIZON_URL ||
+    (process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
       ? "https://horizon.stellar.org"
-      : "https://horizon-testnet.stellar.org",
+      : "https://horizon-testnet.stellar.org"),
 
   // Soroban RPC endpoints
   SOROBAN_RPC_URL:
-    process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
+    process.env.NEXT_PUBLIC_STELLAR_RPC_URL ||
+    process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ||
+    (process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
       ? "https://soroban-rpc.stellar.org"
-      : "https://soroban-testnet.stellar.org",
+      : "https://soroban-testnet.stellar.org"),
 
   // Contract addresses (deployed on testnet)
   CONTRACTS: {

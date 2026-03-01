@@ -179,6 +179,11 @@ pnpm build
 
 Run from repository root.
 
+### 0) Preflight checks
+```bash
+pnpm preflight
+```
+
 ### 1) Build contracts
 ```bash
 cd contracts
@@ -187,13 +192,13 @@ cd contracts
 
 ### 2) Deploy contracts
 ```bash
-./deploy.sh testnet
+./deploy.sh testnet <source_account_or_secret>
 ```
 
 Alternative scripts:
-- `./deploy-testnet.sh`
-- `./deploy-via-rpc.sh`
-- `node ./deploy-with-nodejs.js testnet <SECRET_KEY>`
+- `./deploy-testnet.sh <source_account_or_secret>`
+- `./deploy-via-rpc.sh testnet <source_account_or_secret>`
+- `node ./deploy-with-nodejs.js testnet <source_account_or_secret>`
 
 ### 3) Update `.env.local`
 Copy deployed contract IDs into the env vars, then restart `pnpm dev`.

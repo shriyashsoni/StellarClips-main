@@ -1,36 +1,32 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Build script for all Soroban contracts
+set -euo pipefail
 
-echo "Building Soroban contracts..."
+if ! command -v cargo >/dev/null 2>&1; then
+	echo "❌ cargo not found. Install Rust first: https://rustup.rs"
+	exit 1
+fi
 
-# Build Content NFT Contract
-echo "Building Content NFT Contract..."
-cd content_nft
-cargo build --target wasm32-unknown-unknown --release
-cd ..
+if ! rustup target list --installed | grep -q "wasm32-unknown-unknown"; then
+	echo "ℹ️ Installing wasm target..."
+	rustup target add wasm32-unknown-unknown
+fi
 
-# Build Subscription Contract
-echo "Building Subscription Contract..."
-cd subscription
-cargo build --target wasm32-unknown-unknown --release
-cd ..
+echo "🚀 Building Soroban contracts..."
 
-# Build Payment Contract
-echo "Building Payment Contract..."
-cd payment
-cargo build --target wasm32-unknown-unknown --release
-cd ..
+contracts=(content_nft subscription payment revenue)
 
-# Build Revenue Contract
-echo "Building Revenue Contract..."
-cd revenue
-cargo build --target wasm32-unknown-unknown --release
-cd ..
+for contract in "${contracts[@]}"; do
+	echo "📦 Building ${contract}..."
+	(
+		cd "$contract"
+		cargo build --target wasm32-unknown-unknown --release
+	)
+done
 
-echo "All contracts built successfully!"
-echo ""
-echo "WASM files location:"
+echo "✅ All contracts built successfully"
+echo
+echo "WASM files:"
 echo "- content_nft/target/wasm32-unknown-unknown/release/content_nft_contract.wasm"
 echo "- subscription/target/wasm32-unknown-unknown/release/subscription_contract.wasm"
 echo "- payment/target/wasm32-unknown-unknown/release/payment_contract.wasm"

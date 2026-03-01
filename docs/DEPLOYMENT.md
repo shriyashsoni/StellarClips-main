@@ -2,139 +2,105 @@
 
 ## Prerequisites
 
-1. Node.js 20+ installed
-2. PostgreSQL database
+1. Node.js 20+
+2. pnpm
 3. Stellar account (testnet or mainnet)
-4. IPFS node or Pinata account (optional)
+4. Soroban CLI (for contract deployment)
 
 ## Environment Variables
 
-Create a `.env.local` file with the following variables:
+Copy `.env.example` to `.env.local` and fill contract IDs.
 
-\`\`\`env
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/stellarclips
+Required frontend variables:
 
-# Stellar Network
+```env
 NEXT_PUBLIC_STELLAR_NETWORK=testnet
+NEXT_PUBLIC_STELLAR_RPC_URL=https://soroban-testnet.stellar.org
 NEXT_PUBLIC_HORIZON_URL=https://horizon-testnet.stellar.org
-NEXT_PUBLIC_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
 
-# Smart Contract Addresses (deploy contracts first)
 NEXT_PUBLIC_CONTENT_NFT_CONTRACT=
 NEXT_PUBLIC_SUBSCRIPTION_CONTRACT=
 NEXT_PUBLIC_PAYMENT_CONTRACT=
 NEXT_PUBLIC_REVENUE_CONTRACT=
+```
 
-# Platform Configuration
-NEXT_PUBLIC_PLATFORM_FEE_PERCENT=5
-NEXT_PUBLIC_PLATFORM_ADDRESS=
+Compatibility alias (optional):
 
-# IPFS (optional)
-IPFS_API_URL=https://ipfs.infura.io:5001
-IPFS_GATEWAY_URL=https://ipfs.io/ipfs/
+```env
+NEXT_PUBLIC_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
+```
+
+Optional server-side/indexer variables:
+
+```env
+DATABASE_URL=
+IPFS_API_URL=
+IPFS_GATEWAY_URL=
 PINATA_API_KEY=
 PINATA_SECRET_KEY=
-\`\`\`
-
-## Database Setup
-
-1. Create PostgreSQL database:
-\`\`\`bash
-createdb stellarclips
-\`\`\`
-
-2. Run migrations:
-\`\`\`bash
-psql -d stellarclips -f scripts/01-create-tables.sql
-psql -d stellarclips -f scripts/02-seed-data.sql
-psql -d stellarclips -f scripts/03-rls-policies.sql
-\`\`\`
+```
 
 ## Smart Contract Deployment
 
-1. Install Soroban CLI:
-\`\`\`bash
-cargo install --locked soroban-cli
-\`\`\`
+From repository root:
 
-2. Build contracts:
-\`\`\`bash
+```bash
+pnpm preflight
 cd contracts
 ./build.sh
-\`\`\`
+./deploy.sh testnet <source_account_or_secret>
+```
 
-3. Deploy contracts:
-\`\`\`bash
-./deploy.sh testnet
-\`\`\`
+Alternative scripts:
 
-4. Update `.env.local` with deployed contract addresses
+```bash
+./deploy-testnet.sh <source_account_or_secret>
+./deploy-via-rpc.sh testnet <source_account_or_secret>
+node ./deploy-with-nodejs.js testnet <source_account_or_secret>
+```
 
-## Application Deployment
+After deployment, copy contract IDs into `.env.local` and Vercel environment variables.
 
-### Local Development
+## Database Setup (If Using Indexer)
 
-\`\`\`bash
-pnpm install
-pnpm dev
-\`\`\`
+```bash
+createdb stellarclips
+psql -d stellarclips -f scripts/01-create-tables.sql
+psql -d stellarclips -f scripts/02-create-functions.sql
+```
 
-### Production (Vercel)
+## Vercel Deployment
 
-1. Push code to GitHub
-2. Import project in Vercel
-3. Add environment variables
-4. Deploy
+1. Push repository to GitHub.
+2. Import project in Vercel.
+3. Set all required `NEXT_PUBLIC_*` variables.
+4. Deploy.
 
 Recommended Vercel settings:
-- Framework preset: `Next.js`
-- Install command: `pnpm install --frozen-lockfile`
-- Build command: `pnpm build`
-- Node.js version: `20.x` or newer
 
-Important:
-- Do not commit `contracts/**/target` artifacts. They can make deployments too large and slow.
+- Framework Preset: `Next.js`
+- Install Command: `pnpm install --frozen-lockfile`
+- Build Command: `pnpm build`
+- Node.js: `20.x` or newer
 
-### Docker Deployment
+Notes:
 
-\`\`\`bash
-docker-compose up -d
-\`\`\`
+- `.vercelignore` excludes heavy local artifacts (`contracts/**/target`) to keep deployment lean.
+- If you switch to `mainnet`, update network and all contract IDs together.
 
-## Start Indexer Service
+## Verification
 
-The indexer listens for blockchain events and updates the database:
+Before deploying:
 
-\`\`\`bash
-npm run indexer
-\`\`\`
+```bash
+pnpm install
+pnpm build
+pnpm audit --prod
+```
 
-For production, use a process manager like PM2:
+Post-deploy checks:
 
-\`\`\`bash
-pm2 start scripts/start-indexer.ts --name stellarclips-indexer
-\`\`\`
-
-## Monitoring
-
-- Check indexer logs: `pm2 logs stellarclips-indexer`
-- Monitor database: Use pgAdmin or similar tools
-- Track blockchain events: Use Stellar Expert or similar explorers
-
-## Troubleshooting
-
-### Indexer not receiving events
-- Verify Horizon URL is correct
-- Check network connectivity
-- Ensure contract addresses are correct
-
-### Transactions failing
-- Verify wallet has sufficient XLM for fees
-- Check contract is deployed correctly
-- Validate transaction parameters
-
-### Database connection issues
-- Verify DATABASE_URL is correct
-- Check PostgreSQL is running
-- Ensure database exists and migrations ran
+1. Connect wallet from app UI.
+2. Load `/browse` and `/dashboard`.
+3. Execute one on-chain action (tip or purchase) on testnet.
+4. Verify transaction on Stellar Expert.

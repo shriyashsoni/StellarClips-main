@@ -65,13 +65,11 @@ cd ../revenue && cargo build --target wasm32-unknown-unknown --release
 # Install Soroban CLI
 cargo install --locked soroban-cli
 
-# Deploy content NFT contract
-soroban contract deploy \
-  --wasm target/wasm32-unknown-unknown/release/content_nft_contract.wasm \
-  --source <YOUR_SECRET_KEY> \
-  --network testnet
+# Build all contracts
+./build.sh
 
-# Deploy other contracts similarly
+# Deploy all contracts
+./deploy.sh testnet <source_account_or_secret>
 \`\`\`
 
 ## Testing

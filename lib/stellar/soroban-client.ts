@@ -3,7 +3,10 @@
 import { Contract, rpc as SorobanRpc, TransactionBuilder, Networks, BASE_FEE } from "@stellar/stellar-sdk"
 import { walletService } from "./wallet"
 
-const RPC_URL = process.env.NEXT_PUBLIC_STELLAR_RPC_URL || "https://soroban-testnet.stellar.org"
+const RPC_URL =
+  process.env.NEXT_PUBLIC_STELLAR_RPC_URL ||
+  process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ||
+  "https://soroban-testnet.stellar.org"
 const NETWORK_PASSPHRASE = process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet" ? Networks.PUBLIC : Networks.TESTNET
 
 export class SorobanClient {
@@ -100,9 +103,10 @@ export class SorobanClient {
   async getAccountBalance(publicKey: string): Promise<string> {
     try {
       const horizonUrl =
-        process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
+        process.env.NEXT_PUBLIC_HORIZON_URL ||
+        (process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
           ? "https://horizon.stellar.org"
-          : "https://horizon-testnet.stellar.org"
+          : "https://horizon-testnet.stellar.org")
 
       const response = await fetch(`${horizonUrl}/accounts/${publicKey}`)
 
